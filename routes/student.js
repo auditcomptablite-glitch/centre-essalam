@@ -5,7 +5,7 @@ const db = require('../config/database');
 // GET /register - استمارة التسجيل
 router.get('/', async (req, res) => {
   try {
-    const [levels] = await db.query('SELECT * FROM levels ORDER BY sort_order');
+    const [levels] = await db.query('SELECT * FROM levels ORDER BY id');
     const [subjects] = await db.query('SELECT * FROM subjects ORDER BY name');
     res.render('student/register', {
       title: 'استمارة التسجيل',

@@ -6,7 +6,7 @@ const { isAuthenticated } = require('../middleware/auth');
 // GET /teacher/dashboard
 router.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
-    const [levels] = await db.query('SELECT * FROM levels ORDER BY sort_order');
+    const [levels] = await db.query('SELECT * FROM levels ORDER BY id');
     const [subjects] = await db.query('SELECT * FROM subjects ORDER BY name');
     const [recentSessions] = await db.query(
       `SELECT ses.*, sub.name AS subject_name, l.name AS level_name

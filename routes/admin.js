@@ -59,7 +59,7 @@ router.get('/students', isAdmin, async (req, res) => {
     query += ' GROUP BY s.id ORDER BY s.full_name';
 
     const [students] = await db.query(query, params);
-    const [levels] = await db.query('SELECT * FROM levels ORDER BY sort_order');
+    const [levels] = await db.query('SELECT * FROM levels ORDER BY id');
     const [subjects] = await db.query('SELECT * FROM subjects ORDER BY name');
 
     res.render('admin/students', {
@@ -105,7 +105,7 @@ router.get('/students/:id', isAdmin, async (req, res) => {
       'SELECT * FROM payments WHERE student_id = ? ORDER BY payment_date DESC',
       [req.params.id]
     );
-    const [levels] = await db.query('SELECT * FROM levels ORDER BY sort_order');
+    const [levels] = await db.query('SELECT * FROM levels ORDER BY id');
     const [subjects] = await db.query('SELECT * FROM subjects ORDER BY name');
 
     res.render('admin/student-detail', {
@@ -253,7 +253,7 @@ router.get('/attendance', isAdmin, async (req, res) => {
     query += ' GROUP BY ses.id ORDER BY ses.session_date DESC';
 
     const [sessions] = await db.query(query, params);
-    const [levels] = await db.query('SELECT * FROM levels ORDER BY sort_order');
+    const [levels] = await db.query('SELECT * FROM levels ORDER BY id');
     const [subjects] = await db.query('SELECT * FROM subjects ORDER BY name');
 
     res.render('admin/attendance', {
