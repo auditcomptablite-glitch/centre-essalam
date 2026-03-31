@@ -1,0 +1,73 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-clipboard-check" style="color: var(--primary-light)"></i> سجل الحضور والغياب</div>
+    <div class="page-subtitle">جميع الحصص المسجلة من طرف الأساتذة</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+  <form action="/admin/attendance" method="GET" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">المادة</label>
+      <select name="subject_id" class="form-control">
+        <option value="">كل المواد</option>
+        ${subjects.map(s => `<option value="${s.id}" ${filters.subject_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">المستوى</label>
+      <select name="level_id" class="form-control">
+        <option value="">كل المستويات</option>
+        ${levels.map(l => `<option value="${l.id}" ${filters.level_id == l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">من تاريخ</label>
+      <input type="date" name="from_date" class="form-control" value="${filters.from_date || ''}">
+    </div>
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">إلى تاريخ</label>
+      <input type="date" name="to_date" class="form-control" value="${filters.to_date || ''}">
+    </div>
+    <div style="display: flex; gap: 8px; padding-bottom: 0;">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> تصفية</button>
+      <a href="/admin/attendance" class="btn btn-outline"><i class="fas fa-times"></i> مسح</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  ${sessions.length === 0 ? `
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">لا توجد حصص مسجلة</div>
+      <p>لم يسجل الأساتذة أي حصة حتى الآن</p>
+    </div>` : `
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>التاريخ</th><th>المادة</th><th>المستوى</th><th>الأستاذ</th>
+          <th>حاضرون</th><th>غائبون</th><th>المجموع</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sessions.map(s => `
+          <tr>
+            <td>${new Date(s.session_date).toLocaleDateString('ar-MA')}
+              ${s.session_time ? `<br><small class="text-muted">${s.session_time}</small>` : ''}
+            </td>
+            <td><strong>${s.subject_name}</strong></td>
+            <td><span class="badge badge-info">${s.level_name}</span></td>
+            <td>${s.teacher_name}</td>
+            <td><span class="badge badge-present">✅ ${s.present}</span></td>
+            <td><span class="badge badge-absent">❌ ${s.absent}</span></td>
+            <td><span class="badge badge-info">${s.total}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+` }) %>

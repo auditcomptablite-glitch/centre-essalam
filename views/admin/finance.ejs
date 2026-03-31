@@ -1,0 +1,96 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-wallet" style="color: var(--primary-light)"></i> الإدارة المالية</div>
+    <div class="page-subtitle">متابعة المدفوعات والحالات المالية للتلاميذ</div>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+    <div class="stat-value">${Number(totalRevenue).toLocaleString()} درهم</div>
+    <div class="stat-label">إجمالي المداخيل</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div>
+    <div class="stat-value">${unpaidStudents}</div>
+    <div class="stat-label">تلاميذ غير مدفوعون</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+    <div class="stat-value">${students.length}</div>
+    <div class="stat-label">إجمالي التلاميذ</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+  <form action="/admin/finance" method="GET" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+    <div class="form-group" style="min-width: 140px; flex: 1;">
+      <label class="form-label">الشهر</label>
+      <select name="month" class="form-control">
+        <option value="">كل الأشهر</option>
+        ${['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'].map(m => `<option value="${m}" ${filters.month === m ? 'selected' : ''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 120px; flex: 1;">
+      <label class="form-label">السنة</label>
+      <input type="number" name="year" class="form-control" value="${filters.year || ''}" placeholder="2025" min="2020" max="2030">
+    </div>
+    <div class="form-group" style="min-width: 180px; flex: 1;">
+      <label class="form-label">الحالة المالية</label>
+      <select name="financial_status" class="form-control">
+        <option value="">الكل</option>
+        <option value="مدفوع" ${filters.financial_status === 'مدفوع' ? 'selected' : ''}>مدفوع</option>
+        <option value="غير مدفوع" ${filters.financial_status === 'غير مدفوع' ? 'selected' : ''}>غير مدفوع</option>
+        <option value="مدفوع جزئياً" ${filters.financial_status === 'مدفوع جزئياً' ? 'selected' : ''}>مدفوع جزئياً</option>
+      </select>
+    </div>
+    <div style="display: flex; gap: 8px; padding-bottom: 0;">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> تصفية</button>
+      <a href="/admin/finance" class="btn btn-outline"><i class="fas fa-times"></i> مسح</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  ${students.length === 0 ? `
+    <div class="empty-state">
+      <div class="empty-icon">💰</div>
+      <div class="empty-title">لا توجد نتائج</div>
+    </div>` : `
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>اسم التلميذ</th><th>المستوى</th>
+          <th>الحالة المالية</th><th>المدفوع</th><th>المستحق</th><th>إجمالي الدفعات</th><th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${students.map((s, i) => `
+          <tr>
+            <td class="text-muted">${i + 1}</td>
+            <td><strong>${s.full_name}</strong></td>
+            <td><span class="badge badge-info">${s.level_name}</span></td>
+            <td>
+              <span class="badge ${s.financial_status === 'مدفوع' ? 'badge-paid' : s.financial_status === 'مدفوع جزئياً' ? 'badge-partial' : 'badge-unpaid'}">
+                ${s.financial_status}
+              </span>
+            </td>
+            <td style="color: var(--success); font-weight: 600;">${Number(s.amount_paid || 0).toLocaleString()} درهم</td>
+            <td style="color: var(--danger); font-weight: 600;">${Number(s.amount_due || 0).toLocaleString()} درهم</td>
+            <td>${Number(s.total_payments || 0).toLocaleString()} درهم</td>
+            <td>
+              <a href="/admin/students/${s.id}" class="btn btn-sm btn-outline">
+                <i class="fas fa-edit"></i> تفاصيل
+              </a>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+` }) %>

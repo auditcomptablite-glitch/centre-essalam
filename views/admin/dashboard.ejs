@@ -1,0 +1,91 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-chart-line" style="color: var(--primary-light)"></i> لوحة الإدارة</div>
+    <div class="page-subtitle">مرحباً، ${user.name} — نظرة عامة على المركز</div>
+  </div>
+  <a href="/register" target="_blank" class="btn btn-accent">
+    <i class="fas fa-external-link-alt"></i> استمارة التسجيل
+  </a>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+    <div class="stat-value">${stats.totalStudents}</div>
+    <div class="stat-label">إجمالي التلاميذ</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon orange"><i class="fas fa-chalkboard-teacher"></i></div>
+    <div class="stat-value">${stats.totalTeachers}</div>
+    <div class="stat-label">عدد الأساتذة</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-value">${stats.totalSessions}</div>
+    <div class="stat-label">الحصص المسجلة</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
+    <div class="stat-value">${Number(stats.totalPaid).toLocaleString()} درهم</div>
+    <div class="stat-label">إجمالي المداخيل</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="stat-value">${stats.unpaidCount}</div>
+    <div class="stat-label">تلاميذ غير مدفوعون</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px;">
+  <a href="/admin/students" class="card" style="text-decoration: none; text-align: center; padding: 24px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+    <div style="font-size: 36px; margin-bottom: 10px;">👨‍🎓</div>
+    <div class="fw-bold">إدارة التلاميذ</div>
+    <div class="text-muted" style="font-size: 13px;">عرض وتعديل بيانات التلاميذ</div>
+  </a>
+  <a href="/admin/teachers" class="card" style="text-decoration: none; text-align: center; padding: 24px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+    <div style="font-size: 36px; margin-bottom: 10px;">👩‍🏫</div>
+    <div class="fw-bold">إدارة الأساتذة</div>
+    <div class="text-muted" style="font-size: 13px;">إضافة وإدارة الأساتذة</div>
+  </a>
+  <a href="/admin/attendance" class="card" style="text-decoration: none; text-align: center; padding: 24px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+    <div style="font-size: 36px; margin-bottom: 10px;">📋</div>
+    <div class="fw-bold">سجل الحضور</div>
+    <div class="text-muted" style="font-size: 13px;">تتبع الحضور والغياب</div>
+  </a>
+  <a href="/admin/finance" class="card" style="text-decoration: none; text-align: center; padding: 24px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+    <div style="font-size: 36px; margin-bottom: 10px;">💰</div>
+    <div class="fw-bold">الإدارة المالية</div>
+    <div class="text-muted" style="font-size: 13px;">متابعة المدفوعات</div>
+  </a>
+</div>
+
+<!-- Recent Students -->
+${recentStudents.length > 0 ? `
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="fas fa-user-plus"></i> آخر التسجيلات</div>
+    <a href="/admin/students" class="btn btn-sm btn-outline">عرض الكل</a>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>الاسم</th><th>المستوى</th><th>الحالة المالية</th><th>تاريخ التسجيل</th></tr></thead>
+      <tbody>
+        ${recentStudents.map(s => `
+          <tr>
+            <td><strong>${s.full_name}</strong></td>
+            <td>${s.level_name}</td>
+            <td>
+              <span class="badge ${s.financial_status === 'مدفوع' ? 'badge-paid' : s.financial_status === 'مدفوع جزئياً' ? 'badge-partial' : 'badge-unpaid'}">
+                ${s.financial_status}
+              </span>
+            </td>
+            <td>${new Date(s.created_at).toLocaleDateString('ar-MA')}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>` : ''}
+` }) %>

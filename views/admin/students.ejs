@@ -1,0 +1,87 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-users" style="color: var(--primary-light)"></i> إدارة التلاميذ</div>
+    <div class="page-subtitle">${students.length} تلميذ مسجل</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+  <form action="/admin/students" method="GET" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">المستوى</label>
+      <select name="level_id" class="form-control">
+        <option value="">كل المستويات</option>
+        ${levels.map(l => `<option value="${l.id}" ${filters.level_id == l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 150px; flex: 1;">
+      <label class="form-label">المادة</label>
+      <select name="subject_id" class="form-control">
+        <option value="">كل المواد</option>
+        ${subjects.map(s => `<option value="${s.id}" ${filters.subject_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 160px; flex: 1;">
+      <label class="form-label">الحالة المالية</label>
+      <select name="financial_status" class="form-control">
+        <option value="">الكل</option>
+        <option value="مدفوع" ${filters.financial_status === 'مدفوع' ? 'selected' : ''}>مدفوع</option>
+        <option value="غير مدفوع" ${filters.financial_status === 'غير مدفوع' ? 'selected' : ''}>غير مدفوع</option>
+        <option value="مدفوع جزئياً" ${filters.financial_status === 'مدفوع جزئياً' ? 'selected' : ''}>مدفوع جزئياً</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 200px; flex: 2;">
+      <label class="form-label">بحث بالاسم</label>
+      <input type="text" name="search" class="form-control" placeholder="اسم التلميذ..." value="${filters.search || ''}">
+    </div>
+    <div style="display: flex; gap: 8px; padding-bottom: 0;">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> بحث</button>
+      <a href="/admin/students" class="btn btn-outline"><i class="fas fa-times"></i> مسح</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  ${students.length === 0 ? `
+    <div class="empty-state">
+      <div class="empty-icon">👤</div>
+      <div class="empty-title">لا يوجد تلاميذ</div>
+      <p>لم يتم تسجيل أي تلميذ بعد أو لا توجد نتائج تطابق بحثك</p>
+    </div>` : `
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>الاسم</th><th>المستوى</th><th>المواد</th>
+          <th>الهاتف</th><th>الحالة المالية</th><th>المدفوع</th><th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${students.map((s, i) => `
+          <tr>
+            <td class="text-muted">${i + 1}</td>
+            <td><strong>${s.full_name}</strong></td>
+            <td><span class="badge badge-info">${s.level_name}</span></td>
+            <td style="max-width: 180px; font-size: 13px;">${s.subjects || '-'}</td>
+            <td class="text-muted" style="direction: ltr;">${s.phone || '-'}</td>
+            <td>
+              <span class="badge ${s.financial_status === 'مدفوع' ? 'badge-paid' : s.financial_status === 'مدفوع جزئياً' ? 'badge-partial' : 'badge-unpaid'}">
+                ${s.financial_status}
+              </span>
+            </td>
+            <td>${Number(s.amount_paid || 0).toLocaleString()} درهم</td>
+            <td>
+              <div class="d-flex gap-2">
+                <a href="/admin/students/${s.id}" class="btn btn-sm btn-outline">
+                  <i class="fas fa-edit"></i> تفاصيل
+                </a>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+` }) %>

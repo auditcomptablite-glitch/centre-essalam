@@ -1,0 +1,183 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-user-graduate" style="color: var(--primary-light)"></i> ${student.full_name}</div>
+    <div class="page-subtitle">تفاصيل وإدارة بيانات التلميذ</div>
+  </div>
+  <a href="/admin/students" class="btn btn-outline"><i class="fas fa-arrow-right"></i> رجوع</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+  <!-- Edit Form -->
+  <div class="card" style="grid-column: 1 / -1;">
+    <div class="card-header">
+      <div class="card-title"><i class="fas fa-edit"></i> تعديل البيانات</div>
+    </div>
+    <form action="/admin/students/${student.id}" method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+          <input type="text" name="full_name" class="form-control" value="${student.full_name}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المستوى الدراسي <span class="required">*</span></label>
+          <select name="level_id" class="form-control" required>
+            ${levels.map(l => `<option value="${l.id}" ${student.level_id == l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">هاتف التلميذ</label>
+          <input type="tel" name="phone" class="form-control" value="${student.phone || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">هاتف الولي</label>
+          <input type="tel" name="parent_phone" class="form-control" value="${student.parent_phone || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">الحالة المالية</label>
+          <select name="financial_status" class="form-control">
+            <option value="غير مدفوع" ${student.financial_status === 'غير مدفوع' ? 'selected' : ''}>غير مدفوع</option>
+            <option value="مدفوع جزئياً" ${student.financial_status === 'مدفوع جزئياً' ? 'selected' : ''}>مدفوع جزئياً</option>
+            <option value="مدفوع" ${student.financial_status === 'مدفوع' ? 'selected' : ''}>مدفوع</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المبلغ المدفوع (درهم)</label>
+          <input type="number" name="amount_paid" class="form-control" value="${student.amount_paid || 0}" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">المبلغ المستحق (درهم)</label>
+          <input type="number" name="amount_due" class="form-control" value="${student.amount_due || 0}" min="0" step="0.01">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">المواد المسجل فيها</label>
+          <div class="checkbox-grid">
+            ${subjects.map(sub => `
+              <label class="checkbox-item">
+                <input type="checkbox" name="subjects" value="${sub.id}"
+                  ${enrolledSubjects.some(e => e.id == sub.id) ? 'checked' : ''}>
+                ${sub.name}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">ملاحظات</label>
+          <textarea name="notes" class="form-control" rows="2">${student.notes || ''}</textarea>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <form id="deleteForm" action="/admin/students/${student.id}/delete" method="POST" style="display: inline;">
+          <button type="button" class="btn btn-danger" onclick="confirmDelete('deleteForm', '${student.full_name}')">
+            <i class="fas fa-trash"></i> حذف التلميذ
+          </button>
+        </form>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ التعديلات</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Attendance Stats -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fas fa-chart-bar"></i> إحصائيات الحضور</div>
+    </div>
+    ${attendanceStats.length === 0 ? `<p class="text-muted">لا توجد حصص مسجلة بعد</p>` : `
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>المادة</th><th>حاضر</th><th>غائب</th><th>متأخر</th><th>المجموع</th></tr></thead>
+        <tbody>
+          ${attendanceStats.map(a => `
+            <tr>
+              <td><strong>${a.subject_name}</strong></td>
+              <td><span class="badge badge-present">${a.present}</span></td>
+              <td><span class="badge badge-absent">${a.absent}</span></td>
+              <td><span class="badge badge-late">${a.late_count}</span></td>
+              <td>${a.total}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  </div>
+
+  <!-- Payments -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="fas fa-money-bill-wave"></i> سجل المدفوعات</div>
+      <button class="btn btn-sm btn-success" onclick="openModal('paymentModal')">
+        <i class="fas fa-plus"></i> إضافة دفعة
+      </button>
+    </div>
+    ${payments.length === 0 ? `<p class="text-muted">لا توجد مدفوعات مسجلة</p>` : `
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>المبلغ</th><th>التاريخ</th><th>الشهر</th><th>الحالة</th></tr></thead>
+        <tbody>
+          ${payments.map(p => `
+            <tr>
+              <td><strong>${Number(p.amount).toLocaleString()} درهم</strong></td>
+              <td>${new Date(p.payment_date).toLocaleDateString('ar-MA')}</td>
+              <td>${p.payment_month || '-'} ${p.payment_year || ''}</td>
+              <td><span class="badge ${p.status === 'مدفوع' ? 'badge-paid' : 'badge-partial'}">${p.status}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-plus-circle"></i> تسجيل دفعة جديدة</div>
+      <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
+    </div>
+    <form action="/admin/students/${student.id}/payment" method="POST">
+      <div class="form-group">
+        <label class="form-label">المادة</label>
+        <select name="subject_id" class="form-control">
+          <option value="">عام (كل المواد)</option>
+          ${enrolledSubjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">المبلغ (درهم) <span class="required">*</span></label>
+          <input type="number" name="amount" class="form-control" required min="1" step="0.01" placeholder="200">
+        </div>
+        <div class="form-group">
+          <label class="form-label">تاريخ الدفع</label>
+          <input type="date" name="payment_date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">الشهر</label>
+          <select name="payment_month" class="form-control">
+            <option value="">-- الشهر --</option>
+            ${['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'].map((m,i) => `<option value="${m}">${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">السنة</label>
+          <input type="number" name="payment_year" class="form-control" value="${new Date().getFullYear()}" min="2020" max="2030">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الحالة</label>
+        <select name="status" class="form-control">
+          <option value="مدفوع">مدفوع</option>
+          <option value="مدفوع جزئياً">مدفوع جزئياً</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <input type="text" name="notes" class="form-control" placeholder="ملاحظات اختيارية...">
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" class="btn btn-outline" onclick="closeModal('paymentModal')">إلغاء</button>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> تسجيل الدفعة</button>
+      </div>
+    </form>
+  </div>
+</div>
+` }) %>

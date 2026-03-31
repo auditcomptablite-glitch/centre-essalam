@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استمارة التسجيل | مركز دروس الدعم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="register-page">
+  <div class="register-container">
+    <div class="register-header">
+      <div class="register-logo">🎓</div>
+      <div class="register-title">مركز دروس الدعم</div>
+      <div class="register-subtitle">استمارة تسجيل التلاميذ</div>
+    </div>
+
+    <div class="register-body">
+      <% if (error && error.length > 0) { %>
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= Array.isArray(error) ? error[0] : error %></div>
+      <% } %>
+      <% if (success && success.length > 0) { %>
+        <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= Array.isArray(success) ? success[0] : success %></div>
+      <% } %>
+
+      <form action="/register" method="POST">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+            <input type="text" name="full_name" class="form-control" placeholder="أدخل الاسم الكامل" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">رقم هاتف التلميذ</label>
+            <input type="tel" name="phone" class="form-control" placeholder="06XXXXXXXX">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">رقم هاتف الولي</label>
+            <input type="tel" name="parent_phone" class="form-control" placeholder="06XXXXXXXX">
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label">المستوى الدراسي <span class="required">*</span></label>
+            <select name="level_id" class="form-control" required>
+              <option value="">-- اختر المستوى --</option>
+              <% levels.forEach(level => { %>
+                <option value="<%= level.id %>"><%= level.name %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label">المواد الدراسية <span class="required">*</span> <span class="text-muted" style="font-size:12px;">(يمكن اختيار أكثر من مادة)</span></label>
+            <div class="checkbox-grid">
+              <% subjects.forEach(subject => { %>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="subjects" value="<%= subject.id %>">
+                  <%= subject.name %>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+
+          <div class="form-group form-full">
+            <label class="form-label">ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="أي معلومات إضافية..."></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" style="padding: 14px; font-size: 16px; justify-content: center;">
+          <i class="fas fa-paper-plane"></i> تسجيل الطلب
+        </button>
+      </form>
+    </div>
+
+    <div class="register-footer">
+      للاستفسار والمتابعة تواصل مع إدارة المركز
+      <br>
+      <a href="/auth/login" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">
+        <i class="fas fa-sign-in-alt"></i> دخول الأساتذة والإدارة
+      </a>
+    </div>
+  </div>
+</div>
+<script src="/js/main.js"></script>
+</body>
+</html>
