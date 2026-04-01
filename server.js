@@ -4,9 +4,38 @@ const session = require('express-session');
 const flash = require('connect-flash');
 const methodOverride = require('method-override');
 const path = require('path');
+const MySQLStore = require('express-mysql-session')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ============================================
+// Session Store MySQL
+// ============================================
+const mysqlUrl = process.env.MYSQL_URL || process.env.MYSQL_PUBLIC_URL;
+
+let sessionStore;
+if (mysqlUrl) {
+  const url = new URL(mysqlUrl);
+  sessionStore = new MySQLStore({
+    host:     url.hostname,
+    port:     url.port || 3306,
+    user:     url.username,
+    password: url.password,
+    database: url.pathname.replace('/', ''),
+    clearExpired: true,
+    checkExpirationInterval: 900000,
+    expiration: 86400000,
+  });
+} else {
+  sessionStore = new MySQLStore({
+    host:     process.env.MYSQLHOST     || 'localhost',
+    port:     process.env.MYSQLPORT     || 3306,
+    user:     process.env.MYSQLUSER     || 'root',
+    password: process.env.MYSQLPASSWORD || '',
+    database: process.env.MYSQLDATABASE || 'railway',
+  });
+}
 
 // ============================================
 // إعدادات Express
@@ -23,6 +52,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'support_center_secret_key_2024',
   resave: false,
   saveUninitialized: false,
+  store: sessionStore,
   cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
 }));
 
