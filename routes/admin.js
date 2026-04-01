@@ -341,19 +341,27 @@ router.get('/finance', isAdmin, async (req, res) => {
     );
     const colNames = cols.map(c => c.COLUMN_NAME);
 
+    // Le filtre mois/année doit aller dans le JOIN (pas le WHERE)
+    // Sinon LEFT JOIN ramène tous les paiements et le SUM est toujours global
+    const params = [];
+    const wheres = [];
+
+    // Conditions sur les paiements → dans la clause JOIN ON
+    let joinCondition = 'p.student_id = s.id';
+    if (month && colNames.includes('payment_month')) { joinCondition += ' AND p.payment_month = ?'; params.push(month); }
+    if (year  && colNames.includes('payment_year'))  { joinCondition += ' AND p.payment_year = ?';  params.push(year);  }
+
+    // Conditions sur les étudiants → dans WHERE
+    if (financial_status) { wheres.push('s.financial_status = ?'); params.push(financial_status); }
+
     let query = `
       SELECT s.id, s.full_name, l.name AS level_name,
              s.financial_status, s.amount_paid, s.amount_due,
              COALESCE(SUM(p.amount), 0) AS total_payments
       FROM students s
       JOIN levels l ON s.level_id = l.id
-      LEFT JOIN payments p ON p.student_id = s.id`;
-    const params = [];
-    const wheres = [];
-    // Filtrer par mois/année seulement si les colonnes existent en base
-    if (month && colNames.includes('payment_month')) { wheres.push('p.payment_month = ?'); params.push(month); }
-    if (year  && colNames.includes('payment_year'))  { wheres.push('p.payment_year = ?');  params.push(year);  }
-    if (financial_status) { wheres.push('s.financial_status = ?'); params.push(financial_status); }
+      LEFT JOIN payments p ON ${joinCondition}`;
+
     if (wheres.length) query += ' WHERE ' + wheres.join(' AND ');
     query += ' GROUP BY s.id ORDER BY s.financial_status, s.full_name';
 
