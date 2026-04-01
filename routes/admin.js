@@ -183,11 +183,24 @@ router.post('/students/:id/payment', isAdmin, async (req, res) => {
 
     await conn.beginTransaction();
 
-    // Enregistrer le paiement (sans subject_id — colonne absente en production)
-    // Pour ajouter subject_id : exécuter ALTER TABLE payments ADD COLUMN subject_id INT NULL
+    // Détecter dynamiquement les colonnes présentes dans payments
+    // (la table en production peut manquer payment_month, payment_year, subject_id)
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payments'`
+    );
+    const colNames = cols.map(c => c.COLUMN_NAME);
+
+    const fields = ['student_id', 'amount', 'payment_date', 'status', 'notes'];
+    const values = [req.params.id, amountNum, payment_date, status, notes || null];
+
+    if (colNames.includes('payment_month')) { fields.push('payment_month'); values.push(payment_month || null); }
+    if (colNames.includes('payment_year'))  { fields.push('payment_year');  values.push(payment_year  || null); }
+    if (colNames.includes('subject_id'))    { fields.push('subject_id');    values.push(null); }
+
     await conn.query(
-      'INSERT INTO payments (student_id, amount, payment_date, payment_month, payment_year, status, notes) VALUES (?,?,?,?,?,?,?)',
-      [req.params.id, amountNum, payment_date, payment_month || null, payment_year || null, status, notes || null]
+      `INSERT INTO payments (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
+      values
     );
 
     // BUG FIX 3: Recalculer amount_paid depuis la table payments (somme réelle)
