@@ -191,9 +191,11 @@ router.post('/students/:id/payment', isAdmin, async (req, res) => {
     );
     const colNames = cols.map(c => c.COLUMN_NAME);
 
-    const fields = ['student_id', 'amount', 'payment_date', 'status', 'notes'];
-    const values = [req.params.id, amountNum, payment_date, status, notes || null];
+    // Construire l'INSERT uniquement avec les colonnes existantes
+    const fields = ['student_id', 'amount', 'payment_date', 'status'];
+    const values = [req.params.id, amountNum, payment_date, status];
 
+    if (colNames.includes('notes'))         { fields.push('notes');         values.push(notes || null); }
     if (colNames.includes('payment_month')) { fields.push('payment_month'); values.push(payment_month || null); }
     if (colNames.includes('payment_year'))  { fields.push('payment_year');  values.push(payment_year  || null); }
     if (colNames.includes('subject_id'))    { fields.push('subject_id');    values.push(null); }
