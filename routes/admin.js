@@ -341,17 +341,29 @@ router.get('/finance', isAdmin, async (req, res) => {
     );
     const colNames = cols.map(c => c.COLUMN_NAME);
 
-    // Le filtre mois/année doit aller dans le JOIN (pas le WHERE)
-    // Sinon LEFT JOIN ramène tous les paiements et le SUM est toujours global
     const params = [];
     const wheres = [];
 
-    // Conditions sur les paiements → dans la clause JOIN ON
-    let joinCondition = 'p.student_id = s.id';
-    if (month && colNames.includes('payment_month')) { joinCondition += ' AND p.payment_month = ?'; params.push(month); }
-    if (year  && colNames.includes('payment_year'))  { joinCondition += ' AND p.payment_year = ?';  params.push(year);  }
+    // Vérifier si les colonnes de filtre temporel existent en base
+    const hasMonth = colNames.includes('payment_month');
+    const hasYear  = colNames.includes('payment_year');
 
-    // Conditions sur les étudiants → dans WHERE
+    // Si l'utilisateur filtre par mois/année mais que ces colonnes n'existent pas encore :
+    // bloquer le JOIN pour éviter d'afficher des données incorrectes (retourner 0 partout)
+    const filteringByPeriod = (month || year);
+    const canFilterByPeriod = (!month || hasMonth) && (!year || hasYear);
+
+    // Conditions mois/année → dans JOIN ON (pas WHERE) pour que LEFT JOIN reste correct
+    let joinOn = 'p.student_id = s.id';
+    if (filteringByPeriod && canFilterByPeriod) {
+      if (month) { joinOn += ' AND p.payment_month = ?'; params.push(month); }
+      if (year)  { joinOn += ' AND p.payment_year = ?';  params.push(year);  }
+    } else if (filteringByPeriod && !canFilterByPeriod) {
+      // Colonnes absentes → forcer un JOIN impossible pour retourner 0 partout
+      joinOn += ' AND 1 = 0';
+    }
+
+    // Conditions étudiants → WHERE
     if (financial_status) { wheres.push('s.financial_status = ?'); params.push(financial_status); }
 
     let query = `
@@ -360,7 +372,7 @@ router.get('/finance', isAdmin, async (req, res) => {
              COALESCE(SUM(p.amount), 0) AS total_payments
       FROM students s
       JOIN levels l ON s.level_id = l.id
-      LEFT JOIN payments p ON ${joinCondition}`;
+      LEFT JOIN payments p ON ${joinOn}`;
 
     if (wheres.length) query += ' WHERE ' + wheres.join(' AND ');
     query += ' GROUP BY s.id ORDER BY s.financial_status, s.full_name';
