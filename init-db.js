@@ -31,22 +31,30 @@ async function initDatabase() {
 
     console.log('✅ تم الاتصال بقاعدة البيانات');
 
-    // 1. تنفيذ schema.sql لإنشاء الجداول الجديدة
+    // 1. تنفيذ schema.sql
     const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await connection.query(schema);
     console.log('✅ تم تنفيذ schema.sql بنجاح — الجداول جاهزة!');
 
-    // 2. Migrations — إضافة أعمدة ناقصة في جداول قديمة
+    // 2. Migrations — بدون IF NOT EXISTS
     console.log('\n🔄 تشغيل Migrations...');
 
-    // Migration 1: إضافة sort_order لجدول levels
-    await connection.query(`
-      ALTER TABLE levels
-      ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0
+    // تحقق إذا sort_order موجود، إذا لا أضفه
+    const [cols] = await connection.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'levels' 
+      AND COLUMN_NAME = 'sort_order'
     `);
-    console.log('   ✅ levels.sort_order — OK');
 
-    // تحديث قيم sort_order إن كانت كلها 0
+    if (cols.length === 0) {
+      await connection.query(`ALTER TABLE levels ADD COLUMN sort_order INT DEFAULT 0`);
+      console.log('   ✅ levels.sort_order ajoutée');
+    } else {
+      console.log('   ✅ levels.sort_order déjà présente');
+    }
+
+    // تحديث قيم sort_order
     await connection.query(`
       UPDATE levels SET sort_order = CASE name
         WHEN 'الابتدائي'          THEN 1
@@ -60,7 +68,7 @@ async function initDatabase() {
       END
       WHERE sort_order = 0
     `);
-    console.log('   ✅ قيم sort_order محدّثة — OK');
+    console.log('   ✅ قيم sort_order محدّثة');
 
     console.log('\n✅ جميع Migrations اكتملت بنجاح!');
     console.log('\n🔑 بيانات الدخول الافتراضية:');
