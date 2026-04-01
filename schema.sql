@@ -189,3 +189,14 @@ JOIN levels l ON s.level_id = l.id
 LEFT JOIN sessions ses ON ses.subject_id = ss.subject_id AND ses.level_id = s.level_id
 LEFT JOIN attendance a ON a.session_id = ses.id AND a.student_id = s.id
 GROUP BY s.id, sub.id;
+
+-- ============================================
+-- جدول sessions المستخدمين (express-mysql-session)
+-- يجب أن يحتوي على الأعمدة: session_id, expires, data
+-- ============================================
+CREATE TABLE IF NOT EXISTS `user_sessions` (
+  `session_id` VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
+  `expires`    INT(11) UNSIGNED NOT NULL,
+  `data`       MEDIUMTEXT COLLATE utf8mb4_bin,
+  PRIMARY KEY (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

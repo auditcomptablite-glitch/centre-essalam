@@ -35,7 +35,15 @@ if (mysqlUrl) {
 }
 
 // استخدام جدول مختلف لتجنب التعارض مع جدول sessions الخاص بالحصص
-sessionStoreOptions.schema = { tableName: 'user_sessions' };
+// تحديد أسماء الأعمدة بشكل صريح لتجنب خطأ "Unknown column 'data'"
+sessionStoreOptions.schema = {
+  tableName: 'user_sessions',
+  columnNames: {
+    session_id: 'session_id',
+    expires:    'expires',
+    data:       'data'
+  }
+};
 sessionStoreOptions.clearExpired = true;
 sessionStoreOptions.checkExpirationInterval = 900000;
 sessionStoreOptions.expiration = 86400000;
