@@ -333,6 +333,14 @@ router.get('/attendance', isAdmin, async (req, res) => {
 router.get('/finance', isAdmin, async (req, res) => {
   try {
     const { month, year, financial_status } = req.query;
+
+    // Détecter les colonnes disponibles dans payments
+    const [cols] = await db.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payments'`
+    );
+    const colNames = cols.map(c => c.COLUMN_NAME);
+
     let query = `
       SELECT s.id, s.full_name, l.name AS level_name,
              s.financial_status, s.amount_paid, s.amount_due,
@@ -342,8 +350,9 @@ router.get('/finance', isAdmin, async (req, res) => {
       LEFT JOIN payments p ON p.student_id = s.id`;
     const params = [];
     const wheres = [];
-    if (month) { wheres.push('p.payment_month = ?'); params.push(month); }
-    if (year) { wheres.push('p.payment_year = ?'); params.push(year); }
+    // Filtrer par mois/année seulement si les colonnes existent en base
+    if (month && colNames.includes('payment_month')) { wheres.push('p.payment_month = ?'); params.push(month); }
+    if (year  && colNames.includes('payment_year'))  { wheres.push('p.payment_year = ?');  params.push(year);  }
     if (financial_status) { wheres.push('s.financial_status = ?'); params.push(financial_status); }
     if (wheres.length) query += ' WHERE ' + wheres.join(' AND ');
     query += ' GROUP BY s.id ORDER BY s.financial_status, s.full_name';
