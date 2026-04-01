@@ -14,28 +14,33 @@ const PORT = process.env.PORT || 3000;
 // ============================================
 const mysqlUrl = process.env.MYSQL_URL || process.env.MYSQL_PUBLIC_URL;
 
-let sessionStore;
+let sessionStoreOptions;
 if (mysqlUrl) {
   const url = new URL(mysqlUrl);
-  sessionStore = new MySQLStore({
+  sessionStoreOptions = {
     host:     url.hostname,
     port:     url.port || 3306,
     user:     url.username,
     password: url.password,
     database: url.pathname.replace('/', ''),
-    clearExpired: true,
-    checkExpirationInterval: 900000,
-    expiration: 86400000,
-  });
+  };
 } else {
-  sessionStore = new MySQLStore({
+  sessionStoreOptions = {
     host:     process.env.MYSQLHOST     || 'localhost',
     port:     process.env.MYSQLPORT     || 3306,
     user:     process.env.MYSQLUSER     || 'root',
     password: process.env.MYSQLPASSWORD || '',
     database: process.env.MYSQLDATABASE || 'railway',
-  });
+  };
 }
+
+// استخدام جدول مختلف لتجنب التعارض مع جدول sessions الخاص بالحصص
+sessionStoreOptions.schema = { tableName: 'user_sessions' };
+sessionStoreOptions.clearExpired = true;
+sessionStoreOptions.checkExpirationInterval = 900000;
+sessionStoreOptions.expiration = 86400000;
+
+const sessionStore = new MySQLStore(sessionStoreOptions);
 
 // ============================================
 // إعدادات Express
