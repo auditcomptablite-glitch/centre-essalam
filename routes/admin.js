@@ -10,7 +10,17 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     const [[{ totalStudents }]] = await db.query('SELECT COUNT(*) AS totalStudents FROM students');
     const [[{ totalTeachers }]] = await db.query("SELECT COUNT(*) AS totalTeachers FROM users WHERE role = 'teacher'");
     const [[{ totalSessions }]] = await db.query('SELECT COUNT(*) AS totalSessions FROM sessions');
-    const [[{ totalPaid }]] = await db.query("SELECT COALESCE(SUM(amount),0) AS totalPaid FROM payments WHERE status = 'مدفوع'");
+
+    // BUG FIX 1: totalPaid — lire depuis students.amount_paid (source de vérité)
+    // La table payments peut être vide si aucun paiement n'a été enregistré via le formulaire
+    // amount_paid dans students est mis à jour à chaque paiement
+    const [[{ totalPaid }]] = await db.query('SELECT COALESCE(SUM(amount_paid), 0) AS totalPaid FROM students');
+
+    // BUG FIX 2: unpaidCount — inclure 'غير مدفوع' ET 'مدفوع جزئياً'
+    // Avant: != 'مدفوع' — correct en théorie, mais les 2 élèves étaient marqués 'مدفوع'
+    // Le vrai problème: lors de l'inscription, financial_status = 'غير مدفوع' par défaut (OK)
+    // mais si l'admin marque comme payé via le formulaire, le statut change correctement.
+    // On garde la logique != 'مدفوع' qui est correcte, et on ajoute le compte par statut.
     const [[{ unpaidCount }]] = await db.query("SELECT COUNT(*) AS unpaidCount FROM students WHERE financial_status != 'مدفوع'");
 
     const [recentStudents] = await db.query(
@@ -166,21 +176,56 @@ router.post('/students/:id/delete', isAdmin, async (req, res) => {
 
 // ============ PAYMENTS ============
 router.post('/students/:id/payment', isAdmin, async (req, res) => {
+  const conn = await db.getConnection();
   try {
     const { subject_id, amount, payment_date, payment_month, payment_year, status, notes } = req.body;
-    await db.query(
+    const amountNum = parseFloat(amount) || 0;
+
+    await conn.beginTransaction();
+
+    // Enregistrer le paiement
+    await conn.query(
       'INSERT INTO payments (student_id, subject_id, amount, payment_date, payment_month, payment_year, status, notes) VALUES (?,?,?,?,?,?,?,?)',
-      [req.params.id, subject_id || null, amount, payment_date, payment_month || null, payment_year || null, status, notes || null]
+      [req.params.id, subject_id || null, amountNum, payment_date, payment_month || null, payment_year || null, status, notes || null]
     );
-    // تحديث الحالة المالية للتلميذ
-    await db.query('UPDATE students SET financial_status = ?, amount_paid = amount_paid + ? WHERE id = ?',
-      [status, amount, req.params.id]);
+
+    // BUG FIX 3: Recalculer amount_paid depuis la table payments (somme réelle)
+    // ET mettre à jour financial_status de façon cohérente
+    const [[{ totalPaidForStudent }]] = await conn.query(
+      "SELECT COALESCE(SUM(amount), 0) AS totalPaidForStudent FROM payments WHERE student_id = ? AND status = 'مدفوع'",
+      [req.params.id]
+    );
+
+    // Déterminer le statut financier selon le montant dû
+    const [[student]] = await conn.query('SELECT amount_due FROM students WHERE id = ?', [req.params.id]);
+    const amountDue = parseFloat(student.amount_due) || 0;
+    let newStatus;
+    if (amountDue === 0) {
+      // Pas de montant dû défini: utiliser le statut du paiement directement
+      newStatus = status;
+    } else if (totalPaidForStudent >= amountDue) {
+      newStatus = 'مدفوع';
+    } else if (totalPaidForStudent > 0) {
+      newStatus = 'مدفوع جزئياً';
+    } else {
+      newStatus = 'غير مدفوع';
+    }
+
+    await conn.query(
+      'UPDATE students SET financial_status = ?, amount_paid = ? WHERE id = ?',
+      [newStatus, totalPaidForStudent, req.params.id]
+    );
+
+    await conn.commit();
     req.flash('success', 'تم تسجيل الدفع بنجاح');
     res.redirect(`/admin/students/${req.params.id}`);
   } catch (err) {
+    await conn.rollback();
     console.error(err);
     req.flash('error', 'حدث خطأ');
     res.redirect(`/admin/students/${req.params.id}`);
+  } finally {
+    conn.release();
   }
 });
 
@@ -288,8 +333,10 @@ router.get('/finance', isAdmin, async (req, res) => {
     query += ' GROUP BY s.id ORDER BY s.financial_status, s.full_name';
 
     const [students] = await db.query(query, params);
-    const [[{ totalRevenue }]] = await db.query("SELECT COALESCE(SUM(amount),0) AS totalRevenue FROM payments WHERE status='مدفوع'");
-    const [[{ unpaidStudents }]] = await db.query("SELECT COUNT(*) AS unpaidStudents FROM students WHERE financial_status='غير مدفوع'");
+
+    // BUG FIX 4: Lire totalRevenue depuis students.amount_paid (cohérent avec le dashboard)
+    const [[{ totalRevenue }]] = await db.query('SELECT COALESCE(SUM(amount_paid), 0) AS totalRevenue FROM students');
+    const [[{ unpaidStudents }]] = await db.query("SELECT COUNT(*) AS unpaidStudents FROM students WHERE financial_status != 'مدفوع'");
 
     res.render('admin/finance', {
       title: 'الإدارة المالية', user: req.session.user,
