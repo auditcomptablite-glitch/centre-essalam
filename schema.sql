@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ============================================
 
 -- المستويات الدراسية
-INSERT INTO levels (name, sort_order) VALUES
+INSERT IGNORE INTO levels (name, sort_order) VALUES
 ('الابتدائي', 1),
 ('الأولى إعدادي', 2),
 ('الثانية إعدادي', 3),
@@ -131,7 +131,7 @@ INSERT INTO levels (name, sort_order) VALUES
 ('الثانية باكالوريا', 7);
 
 -- المواد الدراسية
-INSERT INTO subjects (name) VALUES
+INSERT IGNORE INTO subjects (name) VALUES
 ('الرياضيات'),
 ('الفيزياء'),
 ('العلوم الطبيعية'),
@@ -144,7 +144,7 @@ INSERT INTO subjects (name) VALUES
 
 -- المستخدم الأدمن الافتراضي (كلمة المرور: admin123)
 -- تم تشفيرها بـ bcrypt rounds=10
-INSERT INTO users (name, username, password, role) VALUES
+INSERT IGNORE INTO users (name, username, password, role) VALUES
 ('مدير المركز', 'admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 -- ملاحظة: قم بتغيير كلمة المرور بعد أول تسجيل دخول!
 
