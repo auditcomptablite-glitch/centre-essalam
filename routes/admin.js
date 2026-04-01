@@ -178,15 +178,16 @@ router.post('/students/:id/delete', isAdmin, async (req, res) => {
 router.post('/students/:id/payment', isAdmin, async (req, res) => {
   const conn = await db.getConnection();
   try {
-    const { subject_id, amount, payment_date, payment_month, payment_year, status, notes } = req.body;
+    const { amount, payment_date, payment_month, payment_year, status, notes } = req.body;
     const amountNum = parseFloat(amount) || 0;
 
     await conn.beginTransaction();
 
-    // Enregistrer le paiement
+    // Enregistrer le paiement (sans subject_id — colonne absente en production)
+    // Pour ajouter subject_id : exécuter ALTER TABLE payments ADD COLUMN subject_id INT NULL
     await conn.query(
-      'INSERT INTO payments (student_id, subject_id, amount, payment_date, payment_month, payment_year, status, notes) VALUES (?,?,?,?,?,?,?,?)',
-      [req.params.id, subject_id || null, amountNum, payment_date, payment_month || null, payment_year || null, status, notes || null]
+      'INSERT INTO payments (student_id, amount, payment_date, payment_month, payment_year, status, notes) VALUES (?,?,?,?,?,?,?)',
+      [req.params.id, amountNum, payment_date, payment_month || null, payment_year || null, status, notes || null]
     );
 
     // BUG FIX 3: Recalculer amount_paid depuis la table payments (somme réelle)
