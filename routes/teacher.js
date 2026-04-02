@@ -67,9 +67,23 @@ router.post('/session', isAuthenticated, async (req, res) => {
 
     await conn.beginTransaction();
 
+    // Détecter les colonnes disponibles dans sessions
+    // (session_time et notes peuvent être absentes si la table a été créée avant le schema actuel)
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sessions'`
+    );
+    const colNames = cols.map(c => c.COLUMN_NAME);
+
+    const fields = ['subject_id', 'level_id', 'teacher_id', 'session_date'];
+    const values = [subject_id, level_id, req.session.user.id, session_date];
+
+    if (colNames.includes('session_time')) { fields.push('session_time'); values.push(session_time || null); }
+    if (colNames.includes('notes'))        { fields.push('notes');        values.push(notes || null); }
+
     const [sessionResult] = await conn.query(
-      'INSERT INTO sessions (subject_id, level_id, teacher_id, session_date, session_time, notes) VALUES (?, ?, ?, ?, ?, ?)',
-      [subject_id, level_id, req.session.user.id, session_date, session_time || null, notes || null]
+      `INSERT INTO sessions (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
+      values
     );
     const sessionId = sessionResult.insertId;
 
@@ -88,7 +102,7 @@ router.post('/session', isAuthenticated, async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error(err);
-    req.flash('error', 'حدث خطأ أثناء تسجيل الحصة');
+    req.flash('error', 'حدث خطأ: ' + err.message);
     res.redirect('/teacher/dashboard');
   } finally {
     conn.release();
