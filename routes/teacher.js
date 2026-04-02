@@ -89,9 +89,11 @@ router.post('/session', isAuthenticated, async (req, res) => {
 
     if (attendance && typeof attendance === 'object') {
       for (const [studentId, status] of Object.entries(attendance)) {
+        const id = parseInt(studentId, 10);
+        if (!id || id <= 0) continue; // skip invalid/zero IDs
         await conn.query(
           'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-          [sessionId, studentId, status]
+          [sessionId, id, status]
         );
       }
     }
