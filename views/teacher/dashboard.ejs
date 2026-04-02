@@ -902,23 +902,26 @@ async function loadStudents(subjectId, levelId, containerId) {
 
     let html = `<div class="attendance-list">`;
     data.students.forEach(student => {
+      const sid = student.id;
       html += `
-        <div class="attendance-row">
+        <div class="attendance-row" id="row-${sid}">
           <div class="student-info">
             <div class="student-name">${student.full_name}</div>
             ${student.phone ? `<div class="student-phone"><i class="fas fa-phone"></i> ${student.phone}</div>` : ''}
           </div>
           <div class="attendance-options">
-            <button type="button" class="att-btn" data-status="حاضر">✅ حاضر</button>
-            <button type="button" class="att-btn" data-status="غائب">❌ غائب</button>
-            <button type="button" class="att-btn" data-status="متأخر">⏰ متأخر</button>
+            <button type="button" class="att-btn selected" data-sid="${sid}" data-status="حاضر"
+              onclick="selectStatus(this, ${sid})">✅ حاضر</button>
+            <button type="button" class="att-btn" data-sid="${sid}" data-status="غائب"
+              onclick="selectStatus(this, ${sid})">❌ غائب</button>
+            <button type="button" class="att-btn" data-sid="${sid}" data-status="متأخر"
+              onclick="selectStatus(this, ${sid})">⏰ متأخر</button>
           </div>
-          <input type="hidden" name="attendance[${student.id}]" value="حاضر">
+          <input type="hidden" id="att-${sid}" name="attendance[${sid}]" value="حاضر">
         </div>`;
     });
     html += `</div>`;
     container.innerHTML = html;
-    initAttendanceBtns();
   } catch (err) {
     container.innerHTML = `
       <div class="empty-hint">
@@ -930,20 +933,14 @@ async function loadStudents(subjectId, levelId, containerId) {
   }
 }
 
-// ===== Attendance Buttons =====
-function initAttendanceBtns() {
-  document.querySelectorAll('.attendance-options').forEach(optGroup => {
-    const btns = optGroup.querySelectorAll('.att-btn');
-    btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        btns.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        const hiddenInput = optGroup.nextElementSibling;
-        if (hiddenInput) hiddenInput.value = btn.dataset.status;
-      });
-    });
-    const presentBtn = optGroup.querySelector('[data-status="حاضر"]');
-    if (presentBtn) presentBtn.click();
-  });
+// ===== Attendance Status Selection =====
+function selectStatus(btn, studentId) {
+  // Remove selected from all buttons of this student
+  document.querySelectorAll(`.att-btn[data-sid="${studentId}"]`).forEach(b => b.classList.remove('selected'));
+  // Mark clicked button as selected
+  btn.classList.add('selected');
+  // Update hidden input directly by id
+  const input = document.getElementById('att-' + studentId);
+  if (input) input.value = btn.dataset.status;
 }
 </script>
