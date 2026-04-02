@@ -50,7 +50,7 @@
       <thead>
         <tr>
           <th>التاريخ</th><th>المادة</th><th>المستوى</th><th>الأستاذ</th>
-          <th>حاضرون</th><th>غائبون</th><th>المجموع</th>
+          <th>حاضرون</th><th>غائبون</th><th>المجموع</th><th>إجراءات</th>
         </tr>
       </thead>
       <tbody>
@@ -65,6 +65,11 @@
             <td><span class="badge badge-present">✅ ${s.present}</span></td>
             <td><span class="badge badge-absent">❌ ${s.absent}</span></td>
             <td><span class="badge badge-info">${s.total}</span></td>
+            <td>
+              <a href="/admin/session/${s.session_id}" class="btn btn-outline" style="padding: 4px 10px; font-size: 13px;">
+                <i class="fas fa-eye"></i> عرض
+              </a>
+            </td>
           </tr>`).join('')}
       </tbody>
     </table>

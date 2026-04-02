@@ -396,4 +396,44 @@ router.get('/finance', isAdmin, async (req, res) => {
   }
 });
 
+
+// ============ SESSION DETAIL (ADMIN) ============
+router.get('/session/:id', isAdmin, async (req, res) => {
+  try {
+    const [sessions] = await db.query(
+      `SELECT ses.*, sub.name AS subject_name, l.name AS level_name, u.name AS teacher_name
+       FROM sessions ses
+       JOIN subjects sub ON ses.subject_id = sub.id
+       JOIN levels l ON ses.level_id = l.id
+       JOIN users u ON ses.teacher_id = u.id
+       WHERE ses.id = ?`,
+      [req.params.id]
+    );
+    if (sessions.length === 0) {
+      req.flash('error', 'الحصة غير موجودة');
+      return res.redirect('/admin/attendance');
+    }
+    const [attendanceList] = await db.query(
+      `SELECT a.status, s.full_name, s.phone
+       FROM attendance a
+       JOIN students s ON a.student_id = s.id
+       WHERE a.session_id = ?
+       ORDER BY s.full_name`,
+      [req.params.id]
+    );
+    res.render('admin/session-detail', {
+      title: 'تفاصيل الحصة',
+      user: req.session.user,
+      session: sessions[0],
+      attendanceList,
+      error: req.flash('error'),
+      success: req.flash('success')
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'حدث خطأ');
+    res.redirect('/admin/attendance');
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,70 @@
+<%- include('../layout', { body: `
+<div class="page-header">
+  <div>
+    <div class="page-title"><i class="fas fa-clipboard-check" style="color: var(--primary-light)"></i> تفاصيل الحصة</div>
+    <div class="page-subtitle">${session.subject_name} - ${session.level_name}</div>
+  </div>
+  <a href="/admin/attendance" class="btn btn-outline">
+    <i class="fas fa-arrow-right"></i> رجوع
+  </a>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+  <div class="form-grid form-grid-3">
+    <div>
+      <div class="text-muted" style="font-size:12px;">المادة</div>
+      <div class="fw-bold">${session.subject_name}</div>
+    </div>
+    <div>
+      <div class="text-muted" style="font-size:12px;">المستوى</div>
+      <div class="fw-bold">${session.level_name}</div>
+    </div>
+    <div>
+      <div class="text-muted" style="font-size:12px;">التاريخ</div>
+      <div class="fw-bold">${new Date(session.session_date).toLocaleDateString('ar-MA')}</div>
+    </div>
+    <div>
+      <div class="text-muted" style="font-size:12px;">الأستاذ</div>
+      <div class="fw-bold"><i class="fas fa-chalkboard-teacher"></i> ${session.teacher_name}</div>
+    </div>
+    ${session.session_time ? `
+    <div>
+      <div class="text-muted" style="font-size:12px;">التوقيت</div>
+      <div class="fw-bold">${session.session_time}</div>
+    </div>` : ''}
+  </div>
+  ${session.notes ? `<div style="margin-top:16px; padding-top:16px; border-top: 1px solid var(--border);"><span class="text-muted">ملاحظات: </span>${session.notes}</div>` : ''}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="fas fa-users"></i> سجل الحضور (${attendanceList.length} تلميذ)</div>
+  </div>
+
+  <div class="d-flex gap-2" style="margin-bottom: 16px; flex-wrap: wrap;">
+    <span class="badge badge-present">✅ حاضر: ${attendanceList.filter(a => a.status === 'حاضر').length}</span>
+    <span class="badge badge-absent">❌ غائب: ${attendanceList.filter(a => a.status === 'غائب').length}</span>
+    <span class="badge badge-late">⏰ متأخر: ${attendanceList.filter(a => a.status === 'متأخر').length}</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>اسم التلميذ</th><th>الهاتف</th><th>الحالة</th></tr>
+      </thead>
+      <tbody>
+        ${attendanceList.map(a => `
+          <tr>
+            <td><i class="fas fa-user-graduate"></i> ${a.full_name}</td>
+            <td>${a.phone || '-'}</td>
+            <td>
+              ${a.status === 'حاضر' ? '<span class="badge badge-present">✅ حاضر</span>' :
+                a.status === 'غائب' ? '<span class="badge badge-absent">❌ غائب</span>' :
+                '<span class="badge badge-late">⏰ متأخر</span>'}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+` }) %>
