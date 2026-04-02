@@ -32,7 +32,7 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
   }
 });
 
-// GET /teacher/students?subject_id=&level_id= - قائمة التلاميذ
+// GET /teacher/students?subject_id=&level_id=
 router.get('/students', isAuthenticated, async (req, res) => {
   try {
     const { subject_id, level_id } = req.query;
@@ -54,7 +54,7 @@ router.get('/students', isAuthenticated, async (req, res) => {
   }
 });
 
-// POST /teacher/session - إنشاء حصة وتسجيل الحضور
+// POST /teacher/session - VERSION CORRIGÉE
 router.post('/session', isAuthenticated, async (req, res) => {
   const conn = await db.getConnection();
   try {
@@ -67,8 +67,7 @@ router.post('/session', isAuthenticated, async (req, res) => {
 
     await conn.beginTransaction();
 
-    // Détecter les colonnes disponibles dans sessions
-    // (session_time et notes peuvent être absentes si la table a été créée avant le schema actuel)
+    // Vérification des colonnes dynamiques (session_time, notes)
     const [cols] = await conn.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sessions'`
@@ -87,14 +86,25 @@ router.post('/session', isAuthenticated, async (req, res) => {
     );
     const sessionId = sessionResult.insertId;
 
+    // Bloc de correction pour l'erreur de clé étrangère (student_id)
     if (attendance && typeof attendance === 'object') {
       for (const [studentId, status] of Object.entries(attendance)) {
         const id = parseInt(studentId, 10);
-        if (!id || id <= 0) continue; // skip invalid/zero IDs
-        await conn.query(
-          'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-          [sessionId, id, status]
-        );
+        
+        // On ignore les IDs invalides ou NaN
+        if (!id || id <= 0) continue; 
+
+        // Vérification de l'existence de l'élève avant l'insertion
+        const [studentCheck] = await conn.query('SELECT id FROM students WHERE id = ?', [id]);
+        
+        if (studentCheck.length > 0) {
+          await conn.query(
+            'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
+            [sessionId, id, status]
+          );
+        } else {
+          console.warn(`Avertissement: L'élève ID ${id} n'existe pas. Insertion ignorée pour éviter le crash.`);
+        }
       }
     }
 
@@ -103,15 +113,15 @@ router.post('/session', isAuthenticated, async (req, res) => {
     res.redirect('/teacher/dashboard');
   } catch (err) {
     await conn.rollback();
-    console.error(err);
-    req.flash('error', 'حدث خطأ: ' + err.message);
+    console.error("Erreur SQL:", err);
+    req.flash('error', 'حدث خطأ أثناء الحفظ: ' + err.message);
     res.redirect('/teacher/dashboard');
   } finally {
     conn.release();
   }
 });
 
-// GET /teacher/attendance-history - سجل الحضور
+// GET /teacher/attendance-history
 router.get('/attendance-history', isAuthenticated, async (req, res) => {
   try {
     const [sessions] = await db.query(
@@ -141,7 +151,7 @@ router.get('/attendance-history', isAuthenticated, async (req, res) => {
   }
 });
 
-// GET /teacher/session/:id - تفاصيل حصة
+// GET /teacher/session/:id
 router.get('/session/:id', isAuthenticated, async (req, res) => {
   try {
     const [sessions] = await db.query(
