@@ -44,14 +44,14 @@ router.get('/students', isAuthenticated, async (req, res) => {
       `SELECT DISTINCT s.id, s.full_name, s.phone
        FROM students s
        JOIN student_subjects ss ON s.id = ss.student_id
-       WHERE ss.subject_id = ? AND s.level_id = ?
+       WHERE ss.subject_id = ? AND s.level_id = ? AND s.id > 0
        ORDER BY s.full_name`,
       [subject_id, level_id]
     );
     // إذا لم يوجد أحد، نعيد التلاميذ حسب المستوى فقط (احتياطي للتلاميذ غير المربوطين بمواد)
     if (students.length === 0) {
       const [fallback] = await db.query(
-        `SELECT id, full_name, phone FROM students WHERE level_id = ? ORDER BY full_name`,
+        `SELECT id, full_name, phone FROM students WHERE level_id = ? AND id > 0 ORDER BY full_name`,
         [level_id]
       );
       return res.json({ students: fallback, warning: 'تم عرض جميع تلاميذ هذا المستوى لأنه لا يوجد تلاميذ مسجلون في هذه المادة' });
@@ -100,19 +100,15 @@ router.post('/session', isAuthenticated, async (req, res) => {
       const validStatuses = ['حاضر', 'غائب', 'متأخر'];
       for (const [studentId, status] of Object.entries(attendance)) {
         const sid = parseInt(studentId, 10);
-        // تجاهل IDs غير رقمية أو سالبة فقط (0 قد يكون ID صالح في بعض الأنظمة)
-        if (isNaN(sid) || sid < 0) continue;
-        // تجاهل status غير صالح
-        const safeStatus = validStatuses.includes(status) ? status : 'حاضر';
-        try {
-          await conn.query(
-            'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-            [sessionId, sid, safeStatus]
-          );
-        } catch (attErr) {
-          // تجاهل الطالب إذا كان ID غير موجود في جدول students
-          console.warn(`تحذير: تعذر تسجيل حضور الطالب ID=${sid}: ${attErr.message}`);
+        if (isNaN(sid) || sid <= 0) {
+          console.warn(`تحذير: تجاهل حضور بـ ID غير صالح: "${studentId}"`);
+          continue;
         }
+        const safeStatus = validStatuses.includes(status) ? status : 'حاضر';
+        await conn.query(
+          'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
+          [sessionId, sid, safeStatus]
+        );
       }
     }
 

@@ -1,9 +1,8 @@
 -- ============================================================
 -- MIGRATION : correction des bugs - centre-essalam
--- À exécuter UNE SEULE FOIS sur la base Railway
 -- ============================================================
 
--- 1. S'assurer que la table user_sessions existe
+-- 1. Table user_sessions
 CREATE TABLE IF NOT EXISTS `user_sessions` (
   `session_id` VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
   `expires`    INT(11) UNSIGNED NOT NULL,
@@ -11,25 +10,36 @@ CREATE TABLE IF NOT EXISTS `user_sessions` (
   PRIMARY KEY (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- 2. DIAGNOSTIC : voir les élèves sans matière liée (ex: adam)
---    Ces élèves apparaissent dans la liste du prof mais ne sont pas enregistrés
-SELECT 
-  s.id, 
-  s.full_name, 
-  l.name AS niveau,
-  'aucune matière liée → non enregistré dans attendance' AS probleme
+-- 2. DIAGNOSTIC : voir les élèves avec ID = 0 (problème critique)
+SELECT id, full_name, level_id FROM students WHERE id = 0;
+
+-- 3. CORRECTION CRITIQUE : si un élève a id=0, le supprimer et le recréer
+--    (AUTO_INCREMENT ne peut pas attribuer id=0 normalement)
+--    Vérifiez d'abord avec la requête ci-dessus, puis :
+
+-- Étape A : récupérer ses données
+-- SELECT * FROM students WHERE id = 0;
+
+-- Étape B : le supprimer (les FK CASCADE supprimeront aussi student_subjects)
+-- DELETE FROM students WHERE id = 0;
+
+-- Étape C : le recréer (MySQL attribuera un vrai id auto)
+-- INSERT INTO students (full_name, phone, parent_phone, level_id, notes)
+-- VALUES ('adam', NULL, NULL, X, NULL);  -- remplacez X par son level_id
+
+-- Étape D : le lier à ses matières
+-- INSERT IGNORE INTO student_subjects (student_id, subject_id)
+-- SELECT LAST_INSERT_ID(), sub.id FROM subjects sub WHERE sub.name IN ('الرياضيات');
+
+-- 4. DIAGNOSTIC : élèves sans matière liée
+SELECT s.id, s.full_name, l.name AS niveau
 FROM students s
 JOIN levels l ON s.level_id = l.id
-WHERE s.id NOT IN (SELECT DISTINCT student_id FROM student_subjects);
+WHERE s.id NOT IN (SELECT DISTINCT student_id FROM student_subjects)
+  AND s.id > 0;
 
--- 3. CORRECTION AUTOMATIQUE : lier les élèves orphelins à toutes les matières
---    DÉCOMMENTEZ pour corriger automatiquement
+-- 5. CORRECTION : lier les élèves orphelins à toutes les matières (décommenter)
 -- INSERT IGNORE INTO student_subjects (student_id, subject_id)
--- SELECT s.id, sub.id
--- FROM students s
--- CROSS JOIN subjects sub
--- WHERE s.id NOT IN (SELECT DISTINCT student_id FROM student_subjects);
-
--- 4. OU : lier un élève spécifique à une matière spécifique
---    Remplacez X par l'id de l'élève et Y par l'id de la matière
--- INSERT IGNORE INTO student_subjects (student_id, subject_id) VALUES (X, Y);
+-- SELECT s.id, sub.id FROM students s CROSS JOIN subjects sub
+-- WHERE s.id NOT IN (SELECT DISTINCT student_id FROM student_subjects)
+--   AND s.id > 0;
