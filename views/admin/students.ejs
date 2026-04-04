@@ -4,6 +4,73 @@
     <div class="page-title"><i class="fas fa-users" style="color: var(--primary-light)"></i> إدارة التلاميذ</div>
     <div class="page-subtitle">${students.length} تلميذ مسجل</div>
   </div>
+  <button onclick="document.getElementById('addStudentModal').style.display='flex'" class="btn btn-primary">
+    <i class="fas fa-user-plus"></i> إضافة تلميذ
+  </button>
+</div>
+
+<!-- Modal إضافة تلميذ -->
+<div id="addStudentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="padding:20px 24px;border-bottom:1px solid #f0f4f8;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:17px;font-weight:700;color:#0e1b2a;"><i class="fas fa-user-plus" style="color:#0d7377;margin-left:8px;"></i> إضافة تلميذ جديد</div>
+      <button onclick="document.getElementById('addStudentModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b8299;">×</button>
+    </div>
+    <form action="/admin/students" method="POST" style="padding:24px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div style="grid-column:1/-1;">
+          <label class="form-label">الاسم الكامل <span style="color:red">*</span></label>
+          <input type="text" name="full_name" class="form-control" placeholder="أدخل الاسم الكامل" required>
+        </div>
+        <div>
+          <label class="form-label">المستوى الدراسي <span style="color:red">*</span></label>
+          <select name="level_id" class="form-control" required>
+            <option value="">-- اختر المستوى --</option>
+            ${levels.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">هاتف التلميذ</label>
+          <input type="text" name="phone" class="form-control" placeholder="0600000000">
+        </div>
+        <div>
+          <label class="form-label">هاتف ولي الأمر</label>
+          <input type="text" name="parent_phone" class="form-control" placeholder="0600000000">
+        </div>
+        <div>
+          <label class="form-label">الحالة المالية</label>
+          <select name="financial_status" class="form-control">
+            <option value="غير مدفوع">غير مدفوع</option>
+            <option value="مدفوع جزئياً">مدفوع جزئياً</option>
+            <option value="مدفوع">مدفوع</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">المبلغ المدفوع (درهم)</label>
+          <input type="number" name="amount_paid" class="form-control" value="0" min="0" step="0.01">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="form-label">المواد الدراسية <span style="font-size:12px;color:#6b8299;">(اختر مادة أو أكثر)</span></label>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;">
+            ${subjects.map(s => `
+              <label style="display:flex;align-items:center;gap:6px;background:#f4f7f9;padding:7px 12px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all 0.15s;"
+                     onmouseover="this.style.borderColor='#0d7377'" onmouseout="this.style.borderColor='transparent'">
+                <input type="checkbox" name="subjects" value="${s.id}" style="width:15px;height:15px;accent-color:#0d7377;">
+                <span style="font-size:13px;font-weight:500;">${s.name}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="form-label">ملاحظات</label>
+          <textarea name="notes" class="form-control" rows="2" placeholder="ملاحظات اختيارية..."></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;border-top:1px solid #f0f4f8;padding-top:16px;">
+        <button type="button" onclick="document.getElementById('addStudentModal').style.display='none'" class="btn btn-outline">إلغاء</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ التلميذ</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Filters -->

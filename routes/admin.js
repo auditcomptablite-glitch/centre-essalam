@@ -130,6 +130,39 @@ router.get('/students/:id', isAdmin, async (req, res) => {
   }
 });
 
+// POST /admin/students - إنشاء تلميذ جديد من لوحة الإدارة
+router.post('/students', isAdmin, async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { full_name, phone, parent_phone, level_id, financial_status, amount_paid, amount_due, notes, subjects } = req.body;
+    if (!full_name || !level_id) {
+      req.flash('error', 'الاسم الكامل والمستوى الدراسي مطلوبان');
+      return res.redirect('/admin/students');
+    }
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO students (full_name, phone, parent_phone, level_id, financial_status, amount_paid, amount_due, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [full_name, phone || null, parent_phone || null, level_id,
+       financial_status || 'غير مدفوع', parseFloat(amount_paid) || 0, parseFloat(amount_due) || 0, notes || null]
+    );
+    const studentId = result.insertId;
+    const subjectIds = Array.isArray(subjects) ? subjects : (subjects ? [subjects] : []);
+    for (const subId of subjectIds) {
+      await conn.query('INSERT INTO student_subjects (student_id, subject_id) VALUES (?, ?)', [studentId, subId]);
+    }
+    await conn.commit();
+    req.flash('success', `تم إضافة ${full_name} بنجاح`);
+    res.redirect('/admin/students');
+  } catch (err) {
+    await conn.rollback();
+    console.error(err);
+    req.flash('error', 'حدث خطأ أثناء الإضافة: ' + err.message);
+    res.redirect('/admin/students');
+  } finally {
+    conn.release();
+  }
+});
+
 // POST /admin/students/:id - تحديث بيانات تلميذ
 router.post('/students/:id', isAdmin, async (req, res) => {
   const conn = await db.getConnection();

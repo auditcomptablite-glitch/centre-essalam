@@ -28,7 +28,7 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.render('teacher/dashboard', { title: 'لوحة الأستاذ', user: req.session.user, levels: [], subjects: [], recentSessions: [], error: ['خطأ'], success: [] });
+    res.render('teacher/dashboard', { title: 'لوحة الأستاذ', user: req.session.user, levels: [], subjects: [], recentSessions: [] });
   }
 });
 
@@ -39,14 +39,23 @@ router.get('/students', isAuthenticated, async (req, res) => {
     if (!subject_id || !level_id) {
       return res.json({ students: [] });
     }
+    // البحث عن التلاميذ المسجلين في المادة والمستوى المحدد
     const [students] = await db.query(
-      `SELECT s.id, s.full_name, s.phone
+      `SELECT DISTINCT s.id, s.full_name, s.phone
        FROM students s
        JOIN student_subjects ss ON s.id = ss.student_id
        WHERE ss.subject_id = ? AND s.level_id = ?
        ORDER BY s.full_name`,
       [subject_id, level_id]
     );
+    // إذا لم يوجد أحد، نعيد التلاميذ حسب المستوى فقط (احتياطي للتلاميذ غير المربوطين بمواد)
+    if (students.length === 0) {
+      const [fallback] = await db.query(
+        `SELECT id, full_name, phone FROM students WHERE level_id = ? ORDER BY full_name`,
+        [level_id]
+      );
+      return res.json({ students: fallback, warning: 'تم عرض جميع تلاميذ هذا المستوى لأنه لا يوجد تلاميذ مسجلون في هذه المادة' });
+    }
     res.json({ students });
   } catch (err) {
     console.error(err);
