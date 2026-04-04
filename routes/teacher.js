@@ -100,14 +100,19 @@ router.post('/session', isAuthenticated, async (req, res) => {
       const validStatuses = ['حاضر', 'غائب', 'متأخر'];
       for (const [studentId, status] of Object.entries(attendance)) {
         const sid = parseInt(studentId, 10);
-        // تجاهل أي ID غير صالح (0, NaN, سالب)
-        if (!sid || sid <= 0) continue;
-        // تجاهل أي status غير صالح
-        if (!validStatuses.includes(status)) continue;
-        await conn.query(
-          'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-          [sessionId, sid, status]
-        );
+        // تجاهل IDs غير رقمية أو سالبة فقط (0 قد يكون ID صالح في بعض الأنظمة)
+        if (isNaN(sid) || sid < 0) continue;
+        // تجاهل status غير صالح
+        const safeStatus = validStatuses.includes(status) ? status : 'حاضر';
+        try {
+          await conn.query(
+            'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
+            [sessionId, sid, safeStatus]
+          );
+        } catch (attErr) {
+          // تجاهل الطالب إذا كان ID غير موجود في جدول students
+          console.warn(`تحذير: تعذر تسجيل حضور الطالب ID=${sid}: ${attErr.message}`);
+        }
       }
     }
 

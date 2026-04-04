@@ -910,7 +910,7 @@ async function loadStudents(subjectId, levelId, containerId) {
     let html = `${warningHtml}<div class="attendance-list">`;
     data.students.forEach(student => {
       const sid = parseInt(student.id, 10);
-      if (!sid || sid <= 0) return; // تجاهل IDs غير صالحة
+      if (isNaN(sid)) return; // تجاهل IDs غير رقمية فقط
       html += `
         <div class="attendance-row" id="row-${sid}">
           <div class="student-info">
