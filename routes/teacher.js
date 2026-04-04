@@ -97,10 +97,16 @@ router.post('/session', isAuthenticated, async (req, res) => {
     const sessionId = sessionResult.insertId;
 
     if (attendance && typeof attendance === 'object') {
+      const validStatuses = ['حاضر', 'غائب', 'متأخر'];
       for (const [studentId, status] of Object.entries(attendance)) {
+        const sid = parseInt(studentId, 10);
+        // تجاهل أي ID غير صالح (0, NaN, سالب)
+        if (!sid || sid <= 0) continue;
+        // تجاهل أي status غير صالح
+        if (!validStatuses.includes(status)) continue;
         await conn.query(
           'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-          [sessionId, studentId, status]
+          [sessionId, sid, status]
         );
       }
     }
