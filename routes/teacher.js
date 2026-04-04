@@ -77,7 +77,6 @@ router.post('/session', isAuthenticated, async (req, res) => {
     await conn.beginTransaction();
 
     // Détecter les colonnes disponibles dans sessions
-    // (session_time et notes peuvent être absentes si la table a été créée avant le schema actuel)
     const [cols] = await conn.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sessions'`
@@ -96,24 +95,53 @@ router.post('/session', isAuthenticated, async (req, res) => {
     );
     const sessionId = sessionResult.insertId;
 
+    // COMMIT la session d'abord — elle est toujours enregistrée même si l'attendance échoue
+    await conn.commit();
+
+    // Insérer l'attendance séparément, erreur par erreur
+    let attendanceErrors = 0;
     if (attendance && typeof attendance === 'object') {
       const validStatuses = ['حاضر', 'غائب', 'متأخر'];
-      for (const [studentId, status] of Object.entries(attendance)) {
-        const sid = parseInt(studentId, 10);
-        if (isNaN(sid) || sid <= 0) {
-          console.warn(`تحذير: تجاهل حضور بـ ID غير صالح: "${studentId}"`);
-          continue;
-        }
-        const safeStatus = validStatuses.includes(status) ? status : 'حاضر';
-        await conn.query(
-          'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
-          [sessionId, sid, safeStatus]
+      // Récupérer les IDs valides dans students pour éviter les FK violations
+      const studentIds = Object.keys(attendance)
+        .map(id => parseInt(id, 10))
+        .filter(id => !isNaN(id) && id > 0);
+
+      if (studentIds.length > 0) {
+        // Vérifier quels IDs existent vraiment dans students
+        const [existingRows] = await conn.query(
+          `SELECT id FROM students WHERE id IN (${studentIds.map(() => '?').join(',')})`,
+          studentIds
         );
+        const existingIds = new Set(existingRows.map(r => r.id));
+
+        for (const [studentId, status] of Object.entries(attendance)) {
+          const sid = parseInt(studentId, 10);
+          if (isNaN(sid) || sid <= 0) continue;
+          if (!existingIds.has(sid)) {
+            console.warn(`تحذير: الطالب ID=${sid} غير موجود في قاعدة البيانات، تم تجاهله`);
+            attendanceErrors++;
+            continue;
+          }
+          const safeStatus = validStatuses.includes(status) ? status : 'حاضر';
+          try {
+            await conn.query(
+              'INSERT INTO attendance (session_id, student_id, status) VALUES (?, ?, ?)',
+              [sessionId, sid, safeStatus]
+            );
+          } catch (attErr) {
+            console.warn(`تحذير: تعذر تسجيل حضور الطالب ID=${sid}: ${attErr.message}`);
+            attendanceErrors++;
+          }
+        }
       }
     }
 
-    await conn.commit();
-    req.flash('success', 'تم تسجيل الحصة والحضور بنجاح');
+    if (attendanceErrors > 0) {
+      req.flash('success', `تم تسجيل الحصة بنجاح (تحذير: ${attendanceErrors} طالب لم يُسجَّل حضوره بسبب بيانات غير صالحة)`);
+    } else {
+      req.flash('success', 'تم تسجيل الحصة والحضور بنجاح');
+    }
     res.redirect('/teacher/dashboard');
   } catch (err) {
     await conn.rollback();
