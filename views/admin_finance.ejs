@@ -1,0 +1,97 @@
+<%
+  const title = 'Gestion Finance';
+  const activeMenu = 'finance';
+%>
+<%- include('partials/header', { extraCss: '' }) %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-cash-coin me-2 text-warning"></i>Gestion des Paiements</h4>
+    <small class="text-muted">Saisie manuelle des recettes mensuelles</small>
+  </div>
+  <!-- Filtre mois/année -->
+  <form method="GET" class="d-flex gap-2 flex-wrap">
+    <select name="mois" class="form-select form-select-sm" style="width:auto">
+      <% for (let m = 1; m <= 12; m++) { %>
+      <option value="<%= m %>" <%= m === mois ? 'selected' : '' %>><%= MOIS_LABELS[m] %></option>
+      <% } %>
+    </select>
+    <input type="number" name="annee" class="form-control form-control-sm" value="<%= annee %>" style="width:90px" min="2020" max="2099">
+    <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Élève</th>
+            <th>Niveau</th>
+            <th>Montant (MAD)</th>
+            <th>Statut</th>
+            <th style="width:130px">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% students.forEach(s => { %>
+          <% const p = s.paiements[0] || null; %>
+          <tr id="row-<%= s.id %>">
+            <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
+            <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
+            <td>
+              <input type="number" class="form-control form-control-sm montant-input" step="0.01" min="0"
+                value="<%= p ? Number(p.montant).toFixed(2) : '0.00' %>"
+                data-id="<%= s.id %>" style="width: 110px">
+            </td>
+            <td>
+              <% if (p && p.paye) { %>
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                <% if (p.datePaiement) { %>
+                  <small class="text-muted ms-1"><%= new Date(p.datePaiement).toLocaleDateString('fr-MA') %></small>
+                <% } %>
+              <% } else { %>
+                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Non payé</span>
+              <% } %>
+            </td>
+            <td class="d-flex gap-1">
+              <button class="btn btn-sm btn-success btn-payer" data-id="<%= s.id %>" title="Marquer payé">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary btn-imapye" data-id="<%= s.id %>" title="Marquer impayé">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `
+<script>
+const mois = ${mois}, annee = ${annee};
+
+async function savePaiement(studentId, paye) {
+  const montantEl = document.querySelector('.montant-input[data-id="' + studentId + '"]');
+  const montant = parseFloat(montantEl.value) || 0;
+  const res = await fetch('/admin/finance/paiement', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentId, mois, annee, montant, paye: paye ? '1' : '0' })
+  });
+  if (res.ok) location.reload();
+  else alert('Erreur lors de la sauvegarde.');
+}
+
+document.querySelectorAll('.btn-payer').forEach(btn => {
+  btn.addEventListener('click', () => savePaiement(btn.dataset.id, true));
+});
+document.querySelectorAll('.btn-imapye').forEach(btn => {
+  btn.addEventListener('click', () => savePaiement(btn.dataset.id, false));
+});
+</script>
+` }) %>

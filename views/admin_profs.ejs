@@ -1,0 +1,127 @@
+<%
+  const title = 'Gestion Professeurs';
+  const activeMenu = 'profs';
+  const ALL_MATIERES = ['MATHEMATIQUES','PHYSIQUE','SVT','ECONOMIE','FRANCAIS','LETTRES','STE','STM','SI'];
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-person-badge me-2 text-warning"></i>Gestion des Professeurs</h4>
+    <small class="text-muted"><%= profs.length %>/20 professeurs enregistrés</small>
+  </div>
+  <% if (profs.length < 20) { %>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addProfModal">
+    <i class="bi bi-plus-lg me-1"></i>Ajouter un prof
+  </button>
+  <% } else { %>
+  <span class="badge bg-warning text-dark">Limite de 20 profs atteinte</span>
+  <% } %>
+</div>
+
+<% if (error === 'max') { %>
+<div class="alert alert-warning">Vous avez atteint la limite de 20 professeurs.</div>
+<% } else if (error === 'exists') { %>
+<div class="alert alert-danger">Ce nom d'utilisateur existe déjà.</div>
+<% } %>
+
+<!-- Progress bar -->
+<div class="card mb-3 p-3">
+  <div class="d-flex justify-content-between small text-muted mb-1">
+    <span>Capacité des professeurs</span>
+    <span><%= profs.length %> / 20</span>
+  </div>
+  <div class="progress" style="height: 8px">
+    <div class="progress-bar bg-warning" style="width: <%= (profs.length/20*100).toFixed(0) %>%"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr><th>#</th><th>Nom d'utilisateur</th><th>Matière enseignée</th><th>Créé le</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <% if (profs.length === 0) { %>
+          <tr><td colspan="5" class="text-center text-muted py-4">Aucun professeur enregistré.</td></tr>
+          <% } %>
+          <% profs.forEach((p, i) => { %>
+          <tr>
+            <td class="text-muted small"><%= i + 1 %></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                  style="width:32px;height:32px;font-size:.8rem;font-weight:700;flex-shrink:0">
+                  <%= p.username.charAt(0).toUpperCase() %>
+                </div>
+                <span class="fw-medium"><%= p.username %></span>
+              </div>
+            </td>
+            <td>
+              <% if (p.matiere) { %>
+              <span class="badge" style="background:#e3edf7;color:#1a3a5c;font-size:.8rem">
+                <i class="bi bi-book me-1"></i><%= MATIERES_LABELS[p.matiere] %>
+              </span>
+              <% } else { %>
+              <span class="text-muted small">Non assigné</span>
+              <% } %>
+            </td>
+            <td class="text-muted small"><%= new Date(p.createdAt).toLocaleDateString('fr-MA') %></td>
+            <td>
+              <form method="POST" action="/admin/profs/<%= p.id %>/delete"
+                onsubmit="return confirm('Supprimer le prof <%= p.username %> ?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajout Prof -->
+<div class="modal fade" id="addProfModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Nouveau Professeur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/admin/profs/add">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nom d'utilisateur *</label>
+            <input type="text" name="username" class="form-control" required placeholder="ex: prof_math">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Mot de passe *</label>
+            <input type="password" name="password" class="form-control" required placeholder="Minimum 6 caractères" minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Matière enseignée *</label>
+            <select name="matiere" class="form-select" required>
+              <option value="">-- Sélectionner --</option>
+              <% ALL_MATIERES.forEach(m => { %>
+              <option value="<%= m %>"><%= MATIERES_LABELS[m] %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="alert alert-info small py-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Le professeur ne verra que les élèves inscrits dans sa matière.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Créer le compte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

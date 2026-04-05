@@ -1,0 +1,134 @@
+<%
+  const title = 'Gestion Élèves';
+  const activeMenu = 'etudiants';
+  const ALL_NIVEAUX = ['AC1','AC2','AC3','TC','BAC1','BAC2'];
+  const ALL_MATIERES = ['MATHEMATIQUES','PHYSIQUE','SVT','ECONOMIE','FRANCAIS','LETTRES','STE','STM','SI'];
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h4><i class="bi bi-people me-2 text-warning"></i>Gestion des Élèves</h4>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+    <i class="bi bi-plus-lg me-1"></i>Ajouter un élève
+  </button>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3 p-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Niveau</label>
+      <select name="niveau" class="form-select form-select-sm">
+        <option value="">Tous les niveaux</option>
+        <% ALL_NIVEAUX.forEach(n => { %>
+        <option value="<%= n %>" <%= query.niveau === n ? 'selected' : '' %>><%= NIVEAUX_LABELS[n] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Recherche</label>
+      <input type="text" name="search" class="form-control form-control-sm" placeholder="Nom ou prénom..."
+        value="<%= query.search || '' %>">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+      <a href="/admin/etudiants" class="btn btn-sm btn-outline-secondary ms-1">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><%= students.length %> élève(s) trouvé(s)</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr><th>Nom & Prénom</th><th>Niveau</th><th>Matières</th><th>Téléphone</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <% if (students.length === 0) { %>
+          <tr><td colspan="5" class="text-center text-muted py-4">Aucun élève trouvé.</td></tr>
+          <% } %>
+          <% students.forEach(s => { %>
+          <tr>
+            <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
+            <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
+            <td>
+              <% s.inscriptions.forEach(i => { %>
+              <span class="badge bg-light text-dark border me-1" style="font-size:.72rem"><%= MATIERES_LABELS[i.matiere] %></span>
+              <% }) %>
+            </td>
+            <td><%= s.telephone || '—' %></td>
+            <td>
+              <form method="POST" action="/admin/etudiants/<%= s.id %>/delete"
+                onsubmit="return confirm('Supprimer cet élève ?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajout -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Ajouter un Élève</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/admin/etudiants/add">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Prénom *</label>
+              <input type="text" name="prenom" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Nom *</label>
+              <input type="text" name="nom" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Niveau *</label>
+              <select name="niveau" class="form-select" required>
+                <% ALL_NIVEAUX.forEach(n => { %>
+                <option value="<%= n %>"><%= NIVEAUX_LABELS[n] %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Téléphone</label>
+              <input type="text" name="telephone" class="form-control" placeholder="0600000000">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Matières inscrites *</label>
+              <div class="row g-2">
+                <% ALL_MATIERES.forEach(m => { %>
+                <div class="col-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="matieres" value="<%= m %>" id="m-<%= m %>">
+                    <label class="form-check-label small" for="m-<%= m %>"><%= MATIERES_LABELS[m] %></label>
+                  </div>
+                </div>
+                <% }) %>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,146 @@
+<%
+  const title = 'Feuille d\'Appel';
+  const ALL_NIVEAUX = ['AC1','AC2','AC3','TC','BAC1','BAC2'];
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-clipboard-check me-2 text-warning"></i>Feuille d'Appel</h4>
+    <small class="text-muted">
+      Matière : <strong><%= MATIERES_LABELS[matiere] %></strong>
+    </small>
+  </div>
+  <span class="badge bg-info text-dark fs-6">Professeur</span>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3 p-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Date</label>
+      <input type="date" name="date" class="form-control form-control-sm" value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Niveau</label>
+      <select name="niveau" class="form-select form-select-sm">
+        <option value="">Tous les niveaux</option>
+        <% ALL_NIVEAUX.forEach(n => { %>
+        <option value="<%= n %>" <%= niveau === n ? 'selected' : '' %>><%= NIVEAUX_LABELS[n] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+    </div>
+  </form>
+</div>
+
+<!-- Stats rapides -->
+<% const total = students.length;
+   const presents = students.filter(s => s.absences.length === 0 || s.absences[0].present).length;
+   const absents = total - presents;
+%>
+<div class="row g-2 mb-3">
+  <div class="col-4">
+    <div class="card p-2 text-center">
+      <div class="fw-bold fs-5"><%= total %></div>
+      <div class="small text-muted">Total</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card p-2 text-center border-success">
+      <div class="fw-bold fs-5 text-success"><%= presents %></div>
+      <div class="small text-muted">Présents</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card p-2 text-center border-danger">
+      <div class="fw-bold fs-5 text-danger"><%= absents %></div>
+      <div class="small text-muted">Absents</div>
+    </div>
+  </div>
+</div>
+
+<!-- Feuille d'appel -->
+<% if (students.length === 0) { %>
+<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Aucun élève inscrit en <strong><%= MATIERES_LABELS[matiere] %></strong> pour ce filtre.</div>
+<% } else { %>
+<form method="POST" action="/prof/appel">
+  <input type="hidden" name="date" value="<%= date %>">
+
+  <div class="card">
+    <div class="card-header fw-semibold d-flex justify-content-between">
+      <span>Élèves inscrits en <%= MATIERES_LABELS[matiere] %> — <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></span>
+      <div class="d-flex gap-2">
+        <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
+          ✓ Tous présents
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Élève</th>
+              <th>Niveau</th>
+              <th class="text-center">Présent</th>
+              <th class="text-center">Absent</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% students.forEach((s, i) => {
+              const isPresent = s.absences.length === 0 || s.absences[0].present;
+            %>
+            <tr class="appel-row" data-present="<%= isPresent ? '1' : '0' %>">
+              <td class="text-muted small"><%= i + 1 %></td>
+              <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
+              <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
+              <td class="text-center">
+                <input type="radio" name="presences[<%= s.id %>]" value="1"
+                  class="form-check-input radio-present" style="width:1.2rem;height:1.2rem;accent-color:#198754"
+                  <%= isPresent ? 'checked' : '' %>>
+              </td>
+              <td class="text-center">
+                <input type="radio" name="presences[<%= s.id %>]" value="0"
+                  class="form-check-input radio-absent" style="width:1.2rem;height:1.2rem;accent-color:#dc3545"
+                  <%= !isPresent ? 'checked' : '' %>>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-end">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-save me-1"></i>Enregistrer l'appel
+      </button>
+    </div>
+  </div>
+</form>
+<% } %>
+
+<%- include('partials/footer', { extraJs: `
+<script>
+  // Colorier les lignes selon la présence
+  function updateRowColors() {
+    document.querySelectorAll('.appel-row').forEach(row => {
+      const presentRadio = row.querySelector('.radio-present');
+      row.style.background = presentRadio && presentRadio.checked ? '' : 'rgba(220,53,69,.05)';
+    });
+  }
+  document.querySelectorAll('.radio-present, .radio-absent').forEach(r => {
+    r.addEventListener('change', updateRowColors);
+  });
+  updateRowColors();
+
+  // Tous présents
+  document.getElementById('btnTousPresents')?.addEventListener('click', () => {
+    document.querySelectorAll('.radio-present').forEach(r => r.checked = true);
+    updateRowColors();
+  });
+</script>
+` }) %>

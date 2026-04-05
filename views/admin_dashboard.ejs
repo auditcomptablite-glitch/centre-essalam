@@ -1,0 +1,115 @@
+<%
+  const title = 'Dashboard Admin';
+  const activeMenu = 'dashboard';
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-speedometer2 me-2 text-warning"></i>Tableau de bord</h4>
+    <small class="text-muted"><%= MOIS_LABELS[mois] %> <%= annee %></small>
+  </div>
+  <span class="badge bg-warning text-dark fs-6">Administrateur</span>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="stat-num"><%= totalStudents %></div>
+      <div class="text-muted small mt-1"><i class="bi bi-people me-1"></i>Élèves inscrits</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="stat-num"><%= totalProfs %></div>
+      <div class="text-muted small mt-1"><i class="bi bi-person-badge me-1"></i>Professeurs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="stat-num text-success"><%= payes.length %></div>
+      <div class="text-muted small mt-1"><i class="bi bi-check-circle me-1 text-success"></i>Paiements reçus</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="stat-num text-danger"><%= impayes.length %></div>
+      <div class="text-muted small mt-1"><i class="bi bi-x-circle me-1 text-danger"></i>Impayés</div>
+    </div>
+  </div>
+</div>
+
+<!-- Total encaissé -->
+<div class="card mb-4 p-3" style="border-left: 4px solid #198754">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <div class="text-muted small">Total encaissé — <%= MOIS_LABELS[mois] %> <%= annee %></div>
+      <div class="fw-bold fs-4 text-success"><%= totalEncaisse.toFixed(2) %> MAD</div>
+    </div>
+    <i class="bi bi-cash-stack fs-1 text-success opacity-25"></i>
+  </div>
+</div>
+
+<!-- Impayés du mois -->
+<% if (impayes.length > 0) { %>
+<div class="card mb-4">
+  <div class="card-header bg-danger text-white d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong>Impayés du mois de <%= MOIS_LABELS[mois] %></strong>
+    <span class="badge bg-white text-danger ms-auto"><%= impayes.length %></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead><tr>
+          <th>Élève</th><th>Niveau</th><th>Montant dû</th><th>Action</th>
+        </tr></thead>
+        <tbody>
+          <% impayes.forEach(p => { %>
+          <tr>
+            <td class="fw-medium"><%= p.student.prenom %> <%= p.student.nom %></td>
+            <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[p.student.niveau] %></span></td>
+            <td class="text-danger fw-bold"><%= Number(p.montant).toFixed(2) %> MAD</td>
+            <td>
+              <a href="/admin/finance?mois=<%= mois %>&annee=<%= annee %>" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<% } else { %>
+<div class="alert alert-success d-flex align-items-center gap-2">
+  <i class="bi bi-check-circle-fill fs-4"></i>
+  <span>Tous les paiements de <%= MOIS_LABELS[mois] %> sont à jour ! 🎉</span>
+</div>
+<% } %>
+
+<!-- Raccourcis -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <a href="/admin/etudiants" class="card text-decoration-none p-3 d-flex flex-row align-items-center gap-3">
+      <i class="bi bi-people fs-2 text-primary"></i>
+      <div><div class="fw-semibold">Gérer les élèves</div><small class="text-muted">Inscriptions, niveaux, matières</small></div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/admin/finance" class="card text-decoration-none p-3 d-flex flex-row align-items-center gap-3">
+      <i class="bi bi-cash-coin fs-2 text-warning"></i>
+      <div><div class="fw-semibold">Gérer la finance</div><small class="text-muted">Saisir les paiements</small></div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/admin/profs" class="card text-decoration-none p-3 d-flex flex-row align-items-center gap-3">
+      <i class="bi bi-person-badge fs-2 text-info"></i>
+      <div><div class="fw-semibold">Gérer les profs</div><small class="text-muted">Comptes et matières</small></div>
+    </a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
