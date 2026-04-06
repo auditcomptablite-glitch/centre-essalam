@@ -32,6 +32,7 @@ const MOIS_LABELS = [
 ];
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+app.set('trust proxy', 1); // Railway / reverse-proxy
 app.use(compression());
 app.use(helmet({
   contentSecurityPolicy: {
@@ -52,39 +53,16 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view cache', process.env.NODE_ENV === 'production');
 
 // ── Session ───────────────────────────────────────────────────────────────────
-// ── Session store MySQL persistant (évite le MemoryStore en production) ───────
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'centre-soutien-secret-2024',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     httpOnly: true,
     maxAge: 8 * 60 * 60 * 1000, // 8 heures
   },
 };
-
-if (process.env.DATABASE_URL) {
-  try {
-    const MySQLStore = require('express-mysql-session')(session);
-    // Extraire les paramètres depuis DATABASE_URL (mysql://user:pass@host:port/db)
-    const dbUrl = new URL(process.env.DATABASE_URL);
-    sessionConfig.store = new MySQLStore({
-      host:     dbUrl.hostname,
-      port:     parseInt(dbUrl.port) || 3306,
-      user:     dbUrl.username,
-      password: dbUrl.password,
-      database: dbUrl.pathname.slice(1),
-      clearExpired: true,
-      checkExpirationInterval: 15 * 60 * 1000, // 15 min
-      expiration: 8 * 60 * 60 * 1000,          // 8 heures
-      createDatabaseTable: true,
-    });
-    console.log('Session store MySQL actif.');
-  } catch (e) {
-    console.warn('Session store MySQL indisponible, utilisation mémoire:', e.message);
-  }
-}
 app.use(session(sessionConfig));
 
 // ── Helpers locals ────────────────────────────────────────────────────────────
