@@ -62,10 +62,22 @@
               <% }) %>
             </td>
             <td><%= s.telephone || '—' %></td>
-            <td>
+            <td class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#editModal"
+                data-id="<%= s.id %>"
+                data-nom="<%= s.nom %>"
+                data-prenom="<%= s.prenom %>"
+                data-niveau="<%= s.niveau %>"
+                data-telephone="<%= s.telephone || '' %>"
+                data-matieres="<%= s.inscriptions.map(i => i.matiere).join(',') %>"
+                title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </button>
               <form method="POST" action="/admin/etudiants/<%= s.id %>/delete"
                 onsubmit="return confirm('Supprimer cet élève ?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
               </form>
             </td>
           </tr>
@@ -131,4 +143,83 @@
   </div>
 </div>
 
-<%- include('partials/footer') %>
+<!-- Modal Modification -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Modifier l'Élève</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="editForm">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Prénom *</label>
+              <input type="text" name="prenom" id="edit-prenom" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Nom *</label>
+              <input type="text" name="nom" id="edit-nom" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Niveau *</label>
+              <select name="niveau" id="edit-niveau" class="form-select" required>
+                <% ALL_NIVEAUX.forEach(n => { %>
+                <option value="<%= n %>"><%= NIVEAUX_LABELS[n] %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Téléphone</label>
+              <input type="text" name="telephone" id="edit-telephone" class="form-control" placeholder="0600000000">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Matières inscrites</label>
+              <div class="row g-2" id="edit-matieres">
+                <% ALL_MATIERES.forEach(m => { %>
+                <div class="col-6">
+                  <div class="form-check">
+                    <input class="form-check-input edit-matiere-cb" type="checkbox" name="matieres" value="<%= m %>" id="edit-m-<%= m %>">
+                    <label class="form-check-label small" for="edit-m-<%= m %>"><%= MATIERES_LABELS[m] %></label>
+                  </div>
+                </div>
+                <% }) %>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `
+<script>
+document.getElementById('editModal').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const id         = btn.dataset.id;
+  const nom        = btn.dataset.nom;
+  const prenom     = btn.dataset.prenom;
+  const niveau     = btn.dataset.niveau;
+  const telephone  = btn.dataset.telephone;
+  const matieres   = btn.dataset.matieres ? btn.dataset.matieres.split(',') : [];
+
+  document.getElementById('editForm').action = '/admin/etudiants/' + id + '/edit';
+  document.getElementById('edit-prenom').value    = prenom;
+  document.getElementById('edit-nom').value       = nom;
+  document.getElementById('edit-telephone').value = telephone;
+
+  const niveauSel = document.getElementById('edit-niveau');
+  for (const opt of niveauSel.options) opt.selected = (opt.value === niveau);
+
+  document.querySelectorAll('.edit-matiere-cb').forEach(cb => {
+    cb.checked = matieres.includes(cb.value);
+  });
+});
+</script>
+` }) %>

@@ -215,6 +215,28 @@ app.post('/admin/etudiants/add', requireAdmin, async (req, res) => {
   }
 });
 
+app.post('/admin/etudiants/:id/edit', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { nom, prenom, niveau, telephone, matieres } = req.body;
+  const matieresArr = Array.isArray(matieres) ? matieres : (matieres ? [matieres] : []);
+  try {
+    await prisma.$transaction([
+      prisma.inscription.deleteMany({ where: { studentId: id } }),
+      prisma.student.update({
+        where: { id },
+        data: {
+          nom: nom.trim(), prenom: prenom.trim(), niveau, telephone: telephone?.trim() || null,
+          inscriptions: { create: matieresArr.map(m => ({ matiere: m })) },
+        },
+      }),
+    ]);
+    res.redirect('/admin/etudiants');
+  } catch (e) {
+    console.error(e);
+    res.redirect('/admin/etudiants?error=1');
+  }
+});
+
 app.post('/admin/etudiants/:id/delete', requireAdmin, async (req, res) => {
   await prisma.student.delete({ where: { id: parseInt(req.params.id) } });
   res.redirect('/admin/etudiants');
@@ -254,38 +276,18 @@ app.post('/admin/profs/:id/delete', requireAdmin, async (req, res) => {
 
 // ── Gestion Paiements ─────────────────────────────────────────────────────────
 app.get('/admin/finance', requireAdmin, async (req, res) => {
-  const now     = new Date();
-  const mois    = parseInt(req.query.mois)  || now.getMonth() + 1;
-  const annee   = parseInt(req.query.annee) || now.getFullYear();
-  const matiere = req.query.matiere || '';
-  const niveau  = req.query.niveau  || '';
-
+  const now = new Date();
+  const mois = parseInt(req.query.mois) || now.getMonth() + 1;
+  const annee = parseInt(req.query.annee) || now.getFullYear();
   try {
-    const studentWhere = {};
-    if (niveau)  studentWhere.niveau = niveau;
-    if (matiere) studentWhere.inscriptions = { some: { matiere } };
-
     const students = await prisma.student.findMany({
-      where: studentWhere,
       select: {
         id: true, nom: true, prenom: true, niveau: true,
-        inscriptions: {
-          select: { matiere: true },
-          ...(matiere ? { where: { matiere } } : {}),
-          orderBy: { matiere: 'asc' },
-        },
-        paiements: {
-          where: { mois, annee },
-          select: { id: true, paye: true, montant: true, datePaiement: true },
-        },
+        paiements: { where: { mois, annee }, select: { id: true, paye: true, montant: true, datePaiement: true } },
       },
       orderBy: [{ niveau: 'asc' }, { nom: 'asc' }],
     });
-
-    res.render('admin_finance', {
-      students, mois, annee, matiere, niveau,
-      MOIS_LABELS, NIVEAUX_LABELS, MATIERES_LABELS,
-    });
+    res.render('admin_finance', { students, mois, annee, MOIS_LABELS, NIVEAUX_LABELS });
   } catch (e) {
     console.error(e);
     res.status(500).send('Erreur serveur');
