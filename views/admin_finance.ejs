@@ -1,6 +1,8 @@
 <%
   const title = 'Gestion Finance';
   const activeMenu = 'finance';
+  const ALL_NIVEAUX = ['AC1','AC2','AC3','TC','BAC1','BAC2'];
+  const ALL_MATIERES = Object.keys(MATIERES_LABELS);
 %>
 <%- include('partials/header', { extraCss: '' }) %>
 
@@ -9,15 +11,44 @@
     <h4><i class="bi bi-cash-coin me-2 text-warning"></i>Gestion des Paiements</h4>
     <small class="text-muted">Saisie manuelle des recettes mensuelles</small>
   </div>
-  <!-- Filtre mois/année -->
-  <form method="GET" class="d-flex gap-2 flex-wrap">
-    <select name="mois" class="form-select form-select-sm" style="width:auto">
-      <% for (let m = 1; m <= 12; m++) { %>
-      <option value="<%= m %>" <%= m === mois ? 'selected' : '' %>><%= MOIS_LABELS[m] %></option>
-      <% } %>
-    </select>
-    <input type="number" name="annee" class="form-control form-control-sm" value="<%= annee %>" style="width:90px" min="2020" max="2099">
-    <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3 p-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Mois</label>
+      <select name="mois" class="form-select form-select-sm" style="width:auto">
+        <% for (let m = 1; m <= 12; m++) { %>
+        <option value="<%= m %>" <%= m === mois ? 'selected' : '' %>><%= MOIS_LABELS[m] %></option>
+        <% } %>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Année</label>
+      <input type="number" name="annee" class="form-control form-control-sm" value="<%= annee %>" style="width:90px" min="2020" max="2099">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Matière</label>
+      <select name="matiere" class="form-select form-select-sm" style="width:auto">
+        <option value="">Toutes les matières</option>
+        <% ALL_MATIERES.forEach(m => { %>
+        <option value="<%= m %>" <%= matiere === m ? 'selected' : '' %>><%= MATIERES_LABELS[m] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Niveau</label>
+      <select name="niveau" class="form-select form-select-sm" style="width:auto">
+        <option value="">Tous les niveaux</option>
+        <% ALL_NIVEAUX.forEach(n => { %>
+        <option value="<%= n %>" <%= niveau === n ? 'selected' : '' %>><%= NIVEAUX_LABELS[n] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+    </div>
   </form>
 </div>
 
@@ -29,6 +60,7 @@
           <tr>
             <th>Élève</th>
             <th>Niveau</th>
+            <th>Matière(s)</th>
             <th>Montant (MAD)</th>
             <th>Date de paiement</th>
             <th>Statut</th>
@@ -36,6 +68,9 @@
           </tr>
         </thead>
         <tbody>
+          <% if (students.length === 0) { %>
+          <tr><td colspan="7" class="text-center text-muted py-4">Aucun élève trouvé pour ce filtre.</td></tr>
+          <% } %>
           <% students.forEach(s => { %>
           <% const p = s.paiements[0] || null; %>
           <%
@@ -54,6 +89,14 @@
             <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
             <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
             <td>
+              <% s.inscriptions.forEach(ins => { %>
+                <span class="badge bg-secondary me-1" style="font-size:.72rem"><%= MATIERES_LABELS[ins.matiere] %></span>
+              <% }) %>
+              <% if (s.inscriptions.length === 0) { %>
+                <span class="text-muted small">—</span>
+              <% } %>
+            </td>
+            <td>
               <input type="number" class="form-control form-control-sm montant-input" step="0.01" min="0"
                 value="<%= p ? Number(p.montant).toFixed(2) : '0.00' %>"
                 data-id="<%= s.id %>" style="width: 110px">
@@ -65,8 +108,7 @@
                 value="<%= dateVal %>"
                 min="<%= minDate %>"
                 max="<%= maxDate %>"
-                style="width: 150px"
-                placeholder="<%= minDate %>">
+                style="width: 150px">
             </td>
             <td>
               <% if (p && p.paye) { %>

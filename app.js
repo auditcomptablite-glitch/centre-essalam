@@ -254,18 +254,38 @@ app.post('/admin/profs/:id/delete', requireAdmin, async (req, res) => {
 
 // ── Gestion Paiements ─────────────────────────────────────────────────────────
 app.get('/admin/finance', requireAdmin, async (req, res) => {
-  const now = new Date();
-  const mois = parseInt(req.query.mois) || now.getMonth() + 1;
-  const annee = parseInt(req.query.annee) || now.getFullYear();
+  const now     = new Date();
+  const mois    = parseInt(req.query.mois)  || now.getMonth() + 1;
+  const annee   = parseInt(req.query.annee) || now.getFullYear();
+  const matiere = req.query.matiere || '';
+  const niveau  = req.query.niveau  || '';
+
   try {
+    const studentWhere = {};
+    if (niveau)  studentWhere.niveau = niveau;
+    if (matiere) studentWhere.inscriptions = { some: { matiere } };
+
     const students = await prisma.student.findMany({
+      where: studentWhere,
       select: {
         id: true, nom: true, prenom: true, niveau: true,
-        paiements: { where: { mois, annee }, select: { id: true, paye: true, montant: true, datePaiement: true } },
+        inscriptions: {
+          select: { matiere: true },
+          ...(matiere ? { where: { matiere } } : {}),
+          orderBy: { matiere: 'asc' },
+        },
+        paiements: {
+          where: { mois, annee },
+          select: { id: true, paye: true, montant: true, datePaiement: true },
+        },
       },
       orderBy: [{ niveau: 'asc' }, { nom: 'asc' }],
     });
-    res.render('admin_finance', { students, mois, annee, MOIS_LABELS, NIVEAUX_LABELS });
+
+    res.render('admin_finance', {
+      students, mois, annee, matiere, niveau,
+      MOIS_LABELS, NIVEAUX_LABELS, MATIERES_LABELS,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).send('Erreur serveur');
@@ -273,33 +293,14 @@ app.get('/admin/finance', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/finance/paiement', requireAdmin, async (req, res) => {
-  const { studentId, mois, annee, montant, paye, datePaiement } = req.body;
-  const moisInt  = parseInt(mois);
-  const anneeInt = parseInt(annee);
-
-  // Compute the datePaiement to store
-  let dateToStore = null;
-  if (paye === '1') {
-    if (datePaiement) {
-      // Validate the manual date belongs to the filtered mois/annee
-      const d = new Date(datePaiement + 'T00:00:00');
-      if ((d.getMonth() + 1) !== moisInt || d.getFullYear() !== anneeInt) {
-        return res.status(400).json({ ok: false, error: 'La date doit appartenir au mois/année sélectionné.' });
-      }
-      dateToStore = d;
-    } else {
-      // No date provided: default to first day of the filtered month
-      dateToStore = new Date(anneeInt, moisInt - 1, 1);
-    }
-  }
-
+  const { studentId, mois, annee, montant, paye } = req.body;
   try {
     await prisma.paiement.upsert({
-      where: { studentId_mois_annee: { studentId: parseInt(studentId), mois: moisInt, annee: anneeInt } },
-      update: { montant: parseFloat(montant), paye: paye === '1', datePaiement: dateToStore },
+      where: { studentId_mois_annee: { studentId: parseInt(studentId), mois: parseInt(mois), annee: parseInt(annee) } },
+      update: { montant: parseFloat(montant), paye: paye === '1', datePaiement: paye === '1' ? new Date() : null },
       create: {
-        studentId: parseInt(studentId), mois: moisInt, annee: anneeInt,
-        montant: parseFloat(montant), paye: paye === '1', datePaiement: dateToStore,
+        studentId: parseInt(studentId), mois: parseInt(mois), annee: parseInt(annee),
+        montant: parseFloat(montant), paye: paye === '1', datePaiement: paye === '1' ? new Date() : null,
       },
     });
     res.json({ ok: true });
