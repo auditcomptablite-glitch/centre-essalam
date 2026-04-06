@@ -135,14 +135,21 @@
           const totalPayes   = students.reduce((sum, s) => sum + (s.paiements[0] && s.paiements[0].paye   ? Number(s.paiements[0].montant) : 0), 0);
           const totalImpayes = students.reduce((sum, s) => sum + (s.paiements[0] && !s.paiements[0].paye  ? Number(s.paiements[0].montant) : 0), 0);
           const totalGlobal  = students.reduce((sum, s) => sum + (s.paiements[0] ? Number(s.paiements[0].montant) : 0), 0);
+          const nbPayes      = students.filter(s => s.paiements[0] && s.paiements[0].paye).length;
+          const nbImpayes    = students.filter(s => !s.paiements[0] || !s.paiements[0].paye).length;
         %>
-        <tfoot class="table-light border-top border-2">
+        <tfoot class="table-light border-top border-2 fw-semibold">
           <tr>
-            <td colspan="3" class="text-end fw-bold">Total</td>
             <td>
-              <div class="fw-bold fs-6"><%= totalGlobal.toFixed(2) %> <span class="text-muted small">MAD</span></div>
-              <div class="small text-success"><i class="bi bi-check-circle me-1"></i><%= totalPayes.toFixed(2) %> payé</div>
-              <div class="small text-danger"><i class="bi bi-x-circle me-1"></i><%= totalImpayes.toFixed(2) %> impayé</div>
+              <div class="fw-bold"><%= students.length %> élève<%= students.length > 1 ? 's' : '' %></div>
+              <div class="small text-success"><i class="bi bi-check-circle me-1"></i><%= nbPayes %> payé<%= nbPayes > 1 ? 's' : '' %></div>
+              <div class="small text-danger"><i class="bi bi-x-circle me-1"></i><%= nbImpayes %> impayé<%= nbImpayes > 1 ? 's' : '' %></div>
+            </td>
+            <td colspan="2"></td>
+            <td>
+              <div class="fw-bold fs-6"><%= totalGlobal.toFixed(2) %> <span class="text-muted small fw-normal">MAD</span></div>
+              <div class="small text-success"><i class="bi bi-check-circle me-1"></i><%= totalPayes.toFixed(2) %> MAD</div>
+              <div class="small text-danger"><i class="bi bi-x-circle me-1"></i><%= totalImpayes.toFixed(2) %> MAD</div>
             </td>
             <td colspan="3"></td>
           </tr>
