@@ -99,12 +99,12 @@
               <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
               <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
               <td class="text-center">
-                <input type="radio" name="presences[<%= s.id %>]" value="1"
+                <input type="radio" name="presences[s<%= s.id %>]" value="1"
                   class="form-check-input radio-present" style="width:1.2rem;height:1.2rem;accent-color:#198754"
                   <%= isPresent ? 'checked' : '' %>>
               </td>
               <td class="text-center">
-                <input type="radio" name="presences[<%= s.id %>]" value="0"
+                <input type="radio" name="presences[s<%= s.id %>]" value="0"
                   class="form-check-input radio-absent" style="width:1.2rem;height:1.2rem;accent-color:#dc3545"
                   <%= !isPresent ? 'checked' : '' %>>
               </td>

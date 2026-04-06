@@ -412,8 +412,8 @@ app.post('/prof/appel', requireProf, async (req, res) => {
 
   try {
     const entries = Object.entries(presences)
-      .map(([key, val]) => [parseInt(key, 10), val])
-      .filter(([id]) => !isNaN(id) && id > 0);
+      .map(([key, val]) => [parseInt(key.replace(/^s/, ''), 10), val])
+      .filter(([id]) => !isNaN(id) && id >= 1);
 
     console.log('Entrees valides:', entries.length, '/', Object.keys(presences).length);
 
