@@ -1,0 +1,105 @@
+<%
+  const title = 'Mes Séances';
+  const activeMenu = 'seances';
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-calendar2-check me-2 text-warning"></i>Mes Séances</h4>
+    <small class="text-muted">Matière : <strong><%= MATIERES_LABELS[matiere] %></strong></small>
+  </div>
+  <span class="badge bg-secondary fs-6"><%= seances.length %> séance(s)</span>
+</div>
+
+<!-- Filtre par période -->
+<div class="card mb-3 p-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Du</label>
+      <input type="date" name="dateFrom" class="form-control form-control-sm" value="<%= query.dateFrom || '' %>">
+    </div>
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Au</label>
+      <input type="date" name="dateTo" class="form-control form-control-sm" value="<%= query.dateTo || '' %>">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+      <a href="/prof/seances" class="btn btn-sm btn-outline-secondary ms-1">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Tableau -->
+<div class="card">
+  <div class="card-body p-0">
+    <% if (seances.length === 0) { %>
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>
+      Aucune séance enregistrée pour cette période.
+    </div>
+    <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Matière</th>
+            <th class="text-center">Élèves</th>
+            <th class="text-center">Présents</th>
+            <th class="text-center">Absents</th>
+            <th class="text-center">Taux</th>
+            <th class="text-center">Détail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% seances.forEach(s => {
+            const absents = s.total - s.presents;
+            const taux = s.total > 0 ? Math.round(s.presents / s.total * 100) : 0;
+            const dateStr = new Date(s.date).toISOString().split('T')[0];
+          %>
+          <tr>
+            <td class="fw-medium">
+              <%= new Date(s.date).toLocaleDateString('fr-MA', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) %>
+            </td>
+            <td>
+              <span class="badge" style="background:#e3edf7;color:#1a3a5c">
+                <i class="bi bi-book me-1"></i><%= MATIERES_LABELS[s.matiere] %>
+              </span>
+            </td>
+            <td class="text-center fw-semibold"><%= s.total %></td>
+            <td class="text-center">
+              <span class="badge bg-success"><%= s.presents %></span>
+            </td>
+            <td class="text-center">
+              <% if (absents > 0) { %>
+                <span class="badge bg-danger"><%= absents %></span>
+              <% } else { %>
+                <span class="badge bg-light text-muted">0</span>
+              <% } %>
+            </td>
+            <td style="min-width:90px">
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height:6px">
+                  <div class="progress-bar <%= taux >= 80 ? 'bg-success' : taux >= 50 ? 'bg-warning' : 'bg-danger' %>"
+                    style="width:<%= taux %>%"></div>
+                </div>
+                <small class="text-muted" style="min-width:32px"><%= taux %>%</small>
+              </div>
+            </td>
+            <td class="text-center">
+              <a href="/prof/seances/detail?date=<%= dateStr %>&matiere=<%= s.matiere %>"
+                class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye me-1"></i>Voir
+              </a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

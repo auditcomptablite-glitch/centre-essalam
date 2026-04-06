@@ -322,6 +322,77 @@ app.get('/prof', requireProf, async (req, res) => {
   }
 });
 
+// Liste des séances du prof connecté
+app.get('/prof/seances', requireProf, async (req, res) => {
+  const { id: profId, matiere } = req.session.user;
+  const { dateFrom, dateTo } = req.query;
+
+  const where = { profId };
+  if (dateFrom || dateTo) {
+    where.date = {};
+    if (dateFrom) where.date.gte = new Date(dateFrom);
+    if (dateTo)   where.date.lte = new Date(dateTo);
+  }
+
+  try {
+    const rows = await prisma.absence.findMany({
+      where,
+      select: { date: true, matiere: true, present: true },
+      orderBy: [{ date: 'desc' }],
+    });
+
+    // Grouper par (date, matiere)
+    const map = new Map();
+    for (const r of rows) {
+      const key = `${r.date.toISOString().split('T')[0]}__${r.matiere}`;
+      if (!map.has(key)) {
+        map.set(key, { date: r.date, matiere: r.matiere, total: 0, presents: 0 });
+      }
+      const s = map.get(key);
+      s.total++;
+      if (r.present) s.presents++;
+    }
+    const seances = Array.from(map.values());
+
+    res.render('prof_seances', { seances, matiere, query: req.query, MATIERES_LABELS, NIVEAUX_LABELS });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// Détail d'une séance du prof connecté
+app.get('/prof/seances/detail', requireProf, async (req, res) => {
+  const { id: profId } = req.session.user;
+  const { date, matiere } = req.query;
+  if (!date || !matiere) return res.redirect('/prof/seances');
+
+  try {
+    const dateObj = new Date(date);
+    const lignes = await prisma.absence.findMany({
+      where: { profId, date: dateObj, matiere },
+      select: {
+        present: true,
+        student: { select: { id: true, nom: true, prenom: true, niveau: true } },
+      },
+      orderBy: [{ student: { niveau: 'asc' } }, { student: { nom: 'asc' } }],
+    });
+
+    if (!lignes.length) return res.redirect('/prof/seances');
+
+    const presents = lignes.filter(l => l.present).length;
+    const absents  = lignes.length - presents;
+
+    res.render('prof_seance_detail', {
+      lignes, date, matiere, presents, absents,
+      MATIERES_LABELS, NIVEAUX_LABELS,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
 app.post('/prof/appel', requireProf, async (req, res) => {
   const { id: profId, matiere } = req.session.user;
   const { date, presences } = req.body;

@@ -75,8 +75,11 @@
       <i class="bi bi-calendar2-check"></i> Séances
     </a>
     <% } else if (user && user.role === 'PROFESSOR') { %>
-    <a href="/prof" class="nav-link active">
+    <a href="/prof" class="nav-link <%= typeof activeMenu !== 'undefined' && activeMenu === 'appel' ? 'active' : '' %>">
       <i class="bi bi-clipboard-check"></i> Feuille d'appel
+    </a>
+    <a href="/prof/seances" class="nav-link <%= typeof activeMenu !== 'undefined' && activeMenu === 'seances' ? 'active' : '' %>">
+      <i class="bi bi-calendar2-check"></i> Mes séances
     </a>
     <% } %>
   </nav>
