@@ -397,21 +397,39 @@ app.get('/prof/seances/detail', requireProf, async (req, res) => {
 app.post('/prof/appel', requireProf, async (req, res) => {
   const { id: profId, matiere } = req.session.user;
   const { date, presences } = req.body;
-  // presences = { studentId: '1'/'0' }
+
+  console.log('POST /prof/appel body:', JSON.stringify({ date, presences }));
+
+  if (!date || !presences || typeof presences !== 'object') {
+    console.error('Donnees invalides:', { date, presences });
+    return res.status(400).send('Donnees invalides');
+  }
+
   const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    return res.status(400).send('Date invalide');
+  }
+
   try {
-    const ops = Object.entries(presences || {}).map(([studentId, present]) =>
+    const entries = Object.entries(presences)
+      .map(([key, val]) => [parseInt(key, 10), val])
+      .filter(([id]) => !isNaN(id) && id > 0);
+
+    console.log('Entrees valides:', entries.length, '/', Object.keys(presences).length);
+
+    const ops = entries.map(([studentId, present]) =>
       prisma.absence.upsert({
-        where: { studentId_profId_date_matiere: { studentId: parseInt(studentId), profId, date: dateObj, matiere } },
+        where: { studentId_profId_date_matiere: { studentId, profId, date: dateObj, matiere } },
         update: { present: present === '1' },
-        create: { studentId: parseInt(studentId), profId, date: dateObj, matiere, present: present === '1' },
+        create: { studentId, profId, date: dateObj, matiere, present: present === '1' },
       })
     );
+
     await prisma.$transaction(ops);
-    res.redirect(`/prof?date=${date}`);
+    res.redirect('/prof?date=' + date);
   } catch (e) {
-    console.error(e);
-    res.status(500).send('Erreur serveur');
+    console.error('Erreur /prof/appel:', e.message, e.meta || '');
+    res.status(500).send('Erreur serveur: ' + e.message);
   }
 });
 
