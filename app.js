@@ -361,6 +361,44 @@ app.get('/init-admin', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHANGEMENT DE MOT DE PASSE (Admin + Professeurs)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/change-password', requireAuth, (req, res) => {
+  res.render('change_password', { error: null, success: null });
+});
+
+app.post('/change-password', requireAuth, async (req, res) => {
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    return res.render('change_password', { error: 'Veuillez remplir tous les champs.', success: null });
+  }
+  if (newPassword.length < 6) {
+    return res.render('change_password', { error: 'Le nouveau mot de passe doit contenir au moins 6 caractères.', success: null });
+  }
+  if (newPassword !== confirmPassword) {
+    return res.render('change_password', { error: 'Les deux nouveaux mots de passe ne correspondent pas.', success: null });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.session.user.id },
+      select: { password: true },
+    });
+    if (!(await bcrypt.compare(oldPassword, user.password))) {
+      return res.render('change_password', { error: 'Ancien mot de passe incorrect.', success: null });
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: req.session.user.id }, data: { password: hash } });
+    res.render('change_password', { error: null, success: 'Mot de passe changé avec succès !' });
+  } catch (e) {
+    console.error(e);
+    res.render('change_password', { error: 'Erreur serveur.', success: null });
+  }
+});
+
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
