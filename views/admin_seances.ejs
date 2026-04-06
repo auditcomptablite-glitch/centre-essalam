@@ -1,0 +1,138 @@
+<%
+  const title = 'Toutes les Séances';
+  const activeMenu = 'seances';
+  const ALL_MATIERES = ['MATHEMATIQUES','PHYSIQUE','SVT','ECONOMIE','FRANCAIS','LETTRES','STE','STM','SI'];
+%>
+<%- include('partials/header') %>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4><i class="bi bi-calendar2-check me-2 text-warning"></i>Toutes les Séances</h4>
+    <small class="text-muted">Appels enregistrés par les professeurs</small>
+  </div>
+  <span class="badge bg-secondary fs-6"><%= seances.length %> séance(s)</span>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3 p-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Professeur</label>
+      <select name="profId" class="form-select form-select-sm">
+        <option value="">Tous les profs</option>
+        <% profs.forEach(p => { %>
+        <option value="<%= p.id %>" <%= query.profId == p.id ? 'selected' : '' %>>
+          <%= p.username %> — <%= MATIERES_LABELS[p.matiere] || '?' %>
+        </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Matière</label>
+      <select name="matiere" class="form-select form-select-sm">
+        <option value="">Toutes</option>
+        <% ALL_MATIERES.forEach(m => { %>
+        <option value="<%= m %>" <%= query.matiere === m ? 'selected' : '' %>><%= MATIERES_LABELS[m] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Du</label>
+      <input type="date" name="dateFrom" class="form-control form-control-sm" value="<%= query.dateFrom || '' %>">
+    </div>
+    <div class="col-6 col-md-auto">
+      <label class="form-label small fw-semibold mb-1">Au</label>
+      <input type="date" name="dateTo" class="form-control form-control-sm" value="<%= query.dateTo || '' %>">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+      <a href="/admin/seances" class="btn btn-sm btn-outline-secondary ms-1">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Tableau des séances -->
+<div class="card">
+  <div class="card-body p-0">
+    <% if (seances.length === 0) { %>
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>
+      Aucune séance trouvée pour ces critères.
+    </div>
+    <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Professeur</th>
+            <th>Matière</th>
+            <th class="text-center">Élèves</th>
+            <th class="text-center">Présents</th>
+            <th class="text-center">Absents</th>
+            <th class="text-center">Taux</th>
+            <th class="text-center">Détail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% seances.forEach(s => {
+            const absents = s.total - s.presents;
+            const taux = s.total > 0 ? Math.round(s.presents / s.total * 100) : 0;
+            const dateStr = new Date(s.date).toISOString().split('T')[0];
+          %>
+          <tr>
+            <td>
+              <span class="fw-medium">
+                <%= new Date(s.date).toLocaleDateString('fr-MA', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) %>
+              </span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                  style="width:30px;height:30px;font-size:.75rem;font-weight:700;flex-shrink:0">
+                  <%= s.profName.charAt(0).toUpperCase() %>
+                </div>
+                <span><%= s.profName %></span>
+              </div>
+            </td>
+            <td>
+              <span class="badge" style="background:#e3edf7;color:#1a3a5c">
+                <i class="bi bi-book me-1"></i><%= MATIERES_LABELS[s.matiere] %>
+              </span>
+            </td>
+            <td class="text-center fw-semibold"><%= s.total %></td>
+            <td class="text-center">
+              <span class="badge bg-success"><%= s.presents %></span>
+            </td>
+            <td class="text-center">
+              <% if (absents > 0) { %>
+                <span class="badge bg-danger"><%= absents %></span>
+              <% } else { %>
+                <span class="badge bg-light text-muted">0</span>
+              <% } %>
+            </td>
+            <td class="text-center" style="min-width:90px">
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height:6px">
+                  <div class="progress-bar <%= taux >= 80 ? 'bg-success' : taux >= 50 ? 'bg-warning' : 'bg-danger' %>"
+                    style="width:<%= taux %>%"></div>
+                </div>
+                <small class="text-muted" style="min-width:32px"><%= taux %>%</small>
+              </div>
+            </td>
+            <td class="text-center">
+              <a href="/admin/seances/detail?profId=<%= s.profId %>&date=<%= dateStr %>&matiere=<%= s.matiere %>"
+                class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye me-1"></i>Voir
+              </a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

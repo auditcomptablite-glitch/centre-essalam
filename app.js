@@ -343,6 +343,104 @@ app.post('/prof/appel', requireProf, async (req, res) => {
   }
 });
 
+// ── Séances (liste groupée des appels enregistrés) ───────────────────────────
+app.get('/admin/seances', requireAdmin, async (req, res) => {
+  const { profId, matiere, dateFrom, dateTo } = req.query;
+
+  const where = {};
+  if (profId)   where.profId  = parseInt(profId);
+  if (matiere)  where.matiere = matiere;
+  if (dateFrom || dateTo) {
+    where.date = {};
+    if (dateFrom) where.date.gte = new Date(dateFrom);
+    if (dateTo)   where.date.lte = new Date(dateTo);
+  }
+
+  try {
+    // Récupère toutes les lignes d'absence filtrées
+    const rows = await prisma.absence.findMany({
+      where,
+      select: {
+        profId: true, date: true, matiere: true, present: true,
+        prof: { select: { username: true } },
+      },
+      orderBy: [{ date: 'desc' }, { matiere: 'asc' }],
+    });
+
+    // Groupe par (profId, date, matiere) → une séance
+    const map = new Map();
+    for (const r of rows) {
+      const key = `${r.profId}__${r.date.toISOString().split('T')[0]}__${r.matiere}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          profId:   r.profId,
+          profName: r.prof.username,
+          date:     r.date,
+          matiere:  r.matiere,
+          total:    0,
+          presents: 0,
+        });
+      }
+      const s = map.get(key);
+      s.total++;
+      if (r.present) s.presents++;
+    }
+    const seances = Array.from(map.values());
+
+    // Liste des profs pour le filtre
+    const profs = await prisma.user.findMany({
+      where: { role: 'PROFESSOR' },
+      select: { id: true, username: true, matiere: true },
+      orderBy: { username: 'asc' },
+    });
+
+    res.render('admin_seances', {
+      seances, profs, query: req.query, MATIERES_LABELS, NIVEAUX_LABELS,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// Détail d'une séance : profId + date + matiere en query params
+app.get('/admin/seances/detail', requireAdmin, async (req, res) => {
+  const { profId, date, matiere } = req.query;
+  if (!profId || !date || !matiere) return res.redirect('/admin/seances');
+
+  try {
+    const dateObj = new Date(date);
+
+    const lignes = await prisma.absence.findMany({
+      where: { profId: parseInt(profId), date: dateObj, matiere },
+      select: {
+        present: true,
+        student: { select: { id: true, nom: true, prenom: true, niveau: true } },
+        prof:    { select: { username: true } },
+      },
+      orderBy: [
+        { student: { niveau: 'asc' } },
+        { student: { nom:    'asc' } },
+      ],
+    });
+
+    if (!lignes.length) return res.redirect('/admin/seances');
+
+    const profName  = lignes[0].prof.username;
+    const presents  = lignes.filter(l => l.present).length;
+    const absents   = lignes.length - presents;
+
+    res.render('admin_seance_detail', {
+      lignes, profName, profId, date, matiere,
+      presents, absents,
+      MATIERES_LABELS, NIVEAUX_LABELS,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT ADMIN (à appeler une seule fois via /init-admin?secret=XXX)
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -71,6 +71,9 @@
     <a href="/admin/profs" class="nav-link <%= typeof activeMenu !== 'undefined' && activeMenu === 'profs' ? 'active' : '' %>">
       <i class="bi bi-person-badge"></i> Professeurs
     </a>
+    <a href="/admin/seances" class="nav-link <%= typeof activeMenu !== 'undefined' && activeMenu === 'seances' ? 'active' : '' %>">
+      <i class="bi bi-calendar2-check"></i> Séances
+    </a>
     <% } else if (user && user.role === 'PROFESSOR') { %>
     <a href="/prof" class="nav-link active">
       <i class="bi bi-clipboard-check"></i> Feuille d'appel
