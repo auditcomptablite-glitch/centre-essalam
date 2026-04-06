@@ -41,10 +41,11 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'fonts.googleapis.com'],
       fontSrc: ["'self'", 'fonts.gstatic.com', 'cdn.jsdelivr.net'],
       imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'", 'cdn.jsdelivr.net'],
     },
   },
 }));
-app.use(express.urlencoded({ extended: false, limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 app.use(express.json({ limit: '50kb' }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
