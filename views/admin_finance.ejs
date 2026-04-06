@@ -131,6 +131,22 @@
           </tr>
           <% }) %>
         </tbody>
+        <%
+          const totalPayes   = students.reduce((sum, s) => sum + (s.paiements[0] && s.paiements[0].paye   ? Number(s.paiements[0].montant) : 0), 0);
+          const totalImpayes = students.reduce((sum, s) => sum + (s.paiements[0] && !s.paiements[0].paye  ? Number(s.paiements[0].montant) : 0), 0);
+          const totalGlobal  = students.reduce((sum, s) => sum + (s.paiements[0] ? Number(s.paiements[0].montant) : 0), 0);
+        %>
+        <tfoot class="table-light border-top border-2">
+          <tr>
+            <td colspan="3" class="text-end fw-bold">Total</td>
+            <td>
+              <div class="fw-bold fs-6"><%= totalGlobal.toFixed(2) %> <span class="text-muted small">MAD</span></div>
+              <div class="small text-success"><i class="bi bi-check-circle me-1"></i><%= totalPayes.toFixed(2) %> payé</div>
+              <div class="small text-danger"><i class="bi bi-x-circle me-1"></i><%= totalImpayes.toFixed(2) %> impayé</div>
+            </td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
