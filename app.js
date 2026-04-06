@@ -273,14 +273,33 @@ app.get('/admin/finance', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/finance/paiement', requireAdmin, async (req, res) => {
-  const { studentId, mois, annee, montant, paye } = req.body;
+  const { studentId, mois, annee, montant, paye, datePaiement } = req.body;
+  const moisInt  = parseInt(mois);
+  const anneeInt = parseInt(annee);
+
+  // Compute the datePaiement to store
+  let dateToStore = null;
+  if (paye === '1') {
+    if (datePaiement) {
+      // Validate the manual date belongs to the filtered mois/annee
+      const d = new Date(datePaiement + 'T00:00:00');
+      if ((d.getMonth() + 1) !== moisInt || d.getFullYear() !== anneeInt) {
+        return res.status(400).json({ ok: false, error: 'La date doit appartenir au mois/année sélectionné.' });
+      }
+      dateToStore = d;
+    } else {
+      // No date provided: default to first day of the filtered month
+      dateToStore = new Date(anneeInt, moisInt - 1, 1);
+    }
+  }
+
   try {
     await prisma.paiement.upsert({
-      where: { studentId_mois_annee: { studentId: parseInt(studentId), mois: parseInt(mois), annee: parseInt(annee) } },
-      update: { montant: parseFloat(montant), paye: paye === '1', datePaiement: paye === '1' ? new Date() : null },
+      where: { studentId_mois_annee: { studentId: parseInt(studentId), mois: moisInt, annee: anneeInt } },
+      update: { montant: parseFloat(montant), paye: paye === '1', datePaiement: dateToStore },
       create: {
-        studentId: parseInt(studentId), mois: parseInt(mois), annee: parseInt(annee),
-        montant: parseFloat(montant), paye: paye === '1', datePaiement: paye === '1' ? new Date() : null,
+        studentId: parseInt(studentId), mois: moisInt, annee: anneeInt,
+        montant: parseFloat(montant), paye: paye === '1', datePaiement: dateToStore,
       },
     });
     res.json({ ok: true });
@@ -412,8 +431,8 @@ app.post('/prof/appel', requireProf, async (req, res) => {
 
   try {
     const entries = Object.entries(presences)
-      .map(([key, val]) => [parseInt(key.replace(/^s/, ''), 10), val])
-      .filter(([id]) => !isNaN(id) && id >= 1);
+      .map(([key, val]) => [parseInt(key, 10), val])
+      .filter(([id]) => !isNaN(id) && id > 0);
 
     console.log('Entrees valides:', entries.length, '/', Object.keys(presences).length);
 

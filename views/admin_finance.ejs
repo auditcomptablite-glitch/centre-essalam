@@ -30,13 +30,26 @@
             <th>Élève</th>
             <th>Niveau</th>
             <th>Montant (MAD)</th>
+            <th>Date de paiement</th>
             <th>Statut</th>
-            <th style="width:130px">Action</th>
+            <th style="width:100px">Action</th>
           </tr>
         </thead>
         <tbody>
           <% students.forEach(s => { %>
           <% const p = s.paiements[0] || null; %>
+          <%
+            const minDate = annee + '-' + String(mois).padStart(2,'0') + '-01';
+            const lastDay = new Date(annee, mois, 0).getDate();
+            const maxDate = annee + '-' + String(mois).padStart(2,'0') + '-' + String(lastDay).padStart(2,'0');
+            let dateVal = '';
+            if (p && p.datePaiement) {
+              const d = new Date(p.datePaiement);
+              if ((d.getMonth() + 1) === mois && d.getFullYear() === annee) {
+                dateVal = d.toISOString().split('T')[0];
+              }
+            }
+          %>
           <tr id="row-<%= s.id %>">
             <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
             <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
@@ -44,6 +57,16 @@
               <input type="number" class="form-control form-control-sm montant-input" step="0.01" min="0"
                 value="<%= p ? Number(p.montant).toFixed(2) : '0.00' %>"
                 data-id="<%= s.id %>" style="width: 110px">
+            </td>
+            <td>
+              <input type="date"
+                class="form-control form-control-sm date-input"
+                data-id="<%= s.id %>"
+                value="<%= dateVal %>"
+                min="<%= minDate %>"
+                max="<%= maxDate %>"
+                style="width: 150px"
+                placeholder="<%= minDate %>">
             </td>
             <td>
               <% if (p && p.paye) { %>
@@ -75,13 +98,35 @@
 <script>
 const mois = ${mois}, annee = ${annee};
 
+function validateDate(dateStr) {
+  if (!dateStr) return true;
+  const d = new Date(dateStr + 'T00:00:00');
+  return (d.getMonth() + 1) === mois && d.getFullYear() === annee;
+}
+
 async function savePaiement(studentId, paye) {
   const montantEl = document.querySelector('.montant-input[data-id="' + studentId + '"]');
-  const montant = parseFloat(montantEl.value) || 0;
+  const dateEl    = document.querySelector('.date-input[data-id="' + studentId + '"]');
+  const montant   = parseFloat(montantEl.value) || 0;
+  const dateValue = dateEl ? dateEl.value : '';
+
+  if (paye && dateValue && !validateDate(dateValue)) {
+    alert('La date doit être dans le mois sélectionné (' + String(mois).padStart(2,'0') + '/' + annee + ').');
+    dateEl.focus();
+    return;
+  }
+
   const res = await fetch('/admin/finance/paiement', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ studentId, mois, annee, montant, paye: paye ? '1' : '0' })
+    body: JSON.stringify({
+      studentId,
+      mois,
+      annee,
+      montant,
+      paye: paye ? '1' : '0',
+      datePaiement: paye ? (dateValue || null) : null
+    })
   });
   if (res.ok) location.reload();
   else alert('Erreur lors de la sauvegarde.');
