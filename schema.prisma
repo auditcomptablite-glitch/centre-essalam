@@ -1,0 +1,119 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  role      Role     @default(PROFESSOR)
+  matiere   Matiere?
+  createdAt DateTime @default(now())
+
+  absences  Absence[]
+  niveaux   ProfNiveau[]
+
+  @@index([role])
+}
+
+model ProfNiveau {
+  id      Int    @id @default(autoincrement())
+  profId  Int
+  niveau  Niveau
+  prof    User   @relation(fields: [profId], references: [id], onDelete: Cascade)
+
+  @@unique([profId, niveau])
+  @@index([profId])
+}
+
+model Student {
+  id        Int           @id @default(autoincrement())
+  nom       String        @db.VarChar(100)
+  prenom    String        @db.VarChar(100)
+  niveau    Niveau
+  telephone String?       @db.VarChar(20)
+  createdAt DateTime      @default(now())
+
+  inscriptions Inscription[]
+  paiements    Paiement[]
+  absences     Absence[]
+
+  @@index([niveau])
+}
+
+model Inscription {
+  id        Int     @id @default(autoincrement())
+  studentId Int
+  matiere   Matiere
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, matiere])
+  @@index([matiere])
+}
+
+model Paiement {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  mois      Int      // 1-12
+  annee     Int
+  montant   Decimal  @db.Decimal(10, 2)
+  paye      Boolean  @default(false)
+  datePaiement DateTime?
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, mois, annee])
+  @@index([mois, annee])
+  @@index([paye])
+}
+
+model Absence {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  profId    Int
+  date      DateTime @db.Date
+  present   Boolean  @default(true)
+  matiere   Matiere
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  prof    User    @relation(fields: [profId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, profId, date, matiere])
+  @@index([date])
+  @@index([matiere])
+}
+
+enum Role {
+  ADMIN
+  PROFESSOR
+}
+
+enum Niveau {
+  AC1
+  AC2
+  AC3
+  TC
+  BAC1
+  BAC2
+}
+
+enum Matiere {
+  MATHEMATIQUES
+  PHYSIQUE
+  SVT
+  ECONOMIE
+  FRANCAIS
+  LETTRES
+  STE
+  STM
+  SI
+}

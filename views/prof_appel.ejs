@@ -1,6 +1,5 @@
 <%
   const title = 'Feuille d\'Appel';
-  const ALL_NIVEAUX = ['AC1','AC2','AC3','TC','BAC1','BAC2'];
 %>
 <%- include('partials/header') %>
 
@@ -9,26 +8,23 @@
     <h4><i class="bi bi-clipboard-check me-2 text-warning"></i>Feuille d'Appel</h4>
     <small class="text-muted">
       Matière : <strong><%= MATIERES_LABELS[matiere] %></strong>
+      <% if (profNiveaux && profNiveaux.length > 0) { %>
+        &nbsp;·&nbsp; Niveaux :
+        <% profNiveaux.forEach(n => { %>
+          <span class="badge badge-niveau"><%= NIVEAUX_LABELS[n] %></span>
+        <% }) %>
+      <% } %>
     </small>
   </div>
   <span class="badge bg-info text-dark fs-6">Professeur</span>
 </div>
 
-<!-- Filtres -->
+<!-- Filtre date uniquement -->
 <div class="card mb-3 p-3">
   <form method="GET" class="row g-2 align-items-end">
     <div class="col-auto">
       <label class="form-label small fw-semibold mb-1">Date</label>
       <input type="date" name="date" class="form-control form-control-sm" value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
-    </div>
-    <div class="col-auto">
-      <label class="form-label small fw-semibold mb-1">Niveau</label>
-      <select name="niveau" class="form-select form-select-sm">
-        <option value="">Tous les niveaux</option>
-        <% ALL_NIVEAUX.forEach(n => { %>
-        <option value="<%= n %>" <%= niveau === n ? 'selected' : '' %>><%= NIVEAUX_LABELS[n] %></option>
-        <% }) %>
-      </select>
     </div>
     <div class="col-auto">
       <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
@@ -37,9 +33,9 @@
 </div>
 
 <!-- Stats rapides -->
-<% const total = students.length;
+<% const total    = students.length;
    const presents = students.filter(s => s.absences.length === 0 || s.absences[0].present).length;
-   const absents = total - presents;
+   const absents  = total - presents;
 %>
 <div class="row g-2 mb-3">
   <div class="col-4">
@@ -64,7 +60,7 @@
 
 <!-- Feuille d'appel -->
 <% if (students.length === 0) { %>
-<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Aucun élève inscrit en <strong><%= MATIERES_LABELS[matiere] %></strong> pour ce filtre.</div>
+<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Aucun élève inscrit en <strong><%= MATIERES_LABELS[matiere] %></strong> pour vos niveaux.</div>
 <% } else { %>
 <form method="POST" action="/prof/appel">
   <input type="hidden" name="date" value="<%= date %>">
@@ -72,11 +68,9 @@
   <div class="card">
     <div class="card-header fw-semibold d-flex justify-content-between">
       <span>Élèves inscrits en <%= MATIERES_LABELS[matiere] %> — <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></span>
-      <div class="d-flex gap-2">
-        <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
-          ✓ Tous présents
-        </button>
-      </div>
+      <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
+        ✓ Tous présents
+      </button>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -125,7 +119,6 @@
 
 <%- include('partials/footer', { extraJs: `
 <script>
-  // Colorier les lignes selon la présence
   function updateRowColors() {
     document.querySelectorAll('.appel-row').forEach(row => {
       const presentRadio = row.querySelector('.radio-present');
@@ -137,7 +130,6 @@
   });
   updateRowColors();
 
-  // Tous présents
   document.getElementById('btnTousPresents')?.addEventListener('click', () => {
     document.querySelectorAll('.radio-present').forEach(r => r.checked = true);
     updateRowColors();

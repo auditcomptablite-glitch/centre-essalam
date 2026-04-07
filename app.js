@@ -109,12 +109,14 @@ app.post('/login', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { username: username.trim() },
-      select: { id: true, username: true, password: true, role: true, matiere: true },
+      select: { id: true, username: true, password: true, role: true, matiere: true,
+                niveaux: { select: { niveau: true } } },
     });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.render('login', { error: 'Identifiants incorrects.' });
     }
-    req.session.user = { id: user.id, username: user.username, role: user.role, matiere: user.matiere };
+    const profNiveaux = user.niveaux.map(n => n.niveau);
+    req.session.user = { id: user.id, username: user.username, role: user.role, matiere: user.matiere, niveaux: profNiveaux };
     return res.redirect(user.role === 'ADMIN' ? '/admin' : '/prof');
   } catch (e) {
     console.error(e);
@@ -236,10 +238,11 @@ app.get('/admin/profs', requireAdmin, async (req, res) => {
   try {
     const profs = await prisma.user.findMany({
       where: { role: 'PROFESSOR' },
-      select: { id: true, username: true, matiere: true, createdAt: true },
+      select: { id: true, username: true, matiere: true, createdAt: true,
+                niveaux: { select: { niveau: true }, orderBy: { niveau: 'asc' } } },
       orderBy: { username: 'asc' },
     });
-    res.render('admin_profs', { profs, MATIERES_LABELS, error: req.query.error });
+    res.render('admin_profs', { profs, MATIERES_LABELS, NIVEAUX_LABELS, error: req.query.error });
   } catch (e) {
     res.status(500).send('Erreur serveur');
   }
@@ -250,10 +253,39 @@ app.post('/admin/profs/add', requireAdmin, async (req, res) => {
   try {
     const count = await prisma.user.count({ where: { role: 'PROFESSOR' } });
     if (count >= 20) return res.redirect('/admin/profs?error=max');
+    const { niveaux } = req.body;
+    const niveauxArr = Array.isArray(niveaux) ? niveaux : (niveaux ? [niveaux] : []);
     const hash = await bcrypt.hash(password, 10);
-    await prisma.user.create({ data: { username: username.trim(), password: hash, role: 'PROFESSOR', matiere } });
+    await prisma.user.create({
+      data: {
+        username: username.trim(), password: hash, role: 'PROFESSOR', matiere,
+        niveaux: { create: niveauxArr.map(n => ({ niveau: n })) },
+      },
+    });
     res.redirect('/admin/profs');
   } catch (e) {
+    res.redirect('/admin/profs?error=exists');
+  }
+});
+
+app.post('/admin/profs/:id/edit', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { matiere, niveaux } = req.body;
+  const niveauxArr = Array.isArray(niveaux) ? niveaux : (niveaux ? [niveaux] : []);
+  try {
+    await prisma.$transaction([
+      prisma.profNiveau.deleteMany({ where: { profId: id } }),
+      prisma.user.update({
+        where: { id },
+        data: {
+          matiere,
+          niveaux: { create: niveauxArr.map(n => ({ niveau: n })) },
+        },
+      }),
+    ]);
+    res.redirect('/admin/profs');
+  } catch (e) {
+    console.error(e);
     res.redirect('/admin/profs?error=exists');
   }
 });
@@ -342,14 +374,14 @@ app.post('/admin/finance/paiement', requireAdmin, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.get('/prof', requireProf, async (req, res) => {
-  const { id, matiere } = req.session.user;
-  const niveau = req.query.niveau || '';
+  const { id, matiere, niveaux: profNiveaux } = req.session.user;
   const date = req.query.date || new Date().toISOString().split('T')[0];
   try {
-    const where = {
-      inscriptions: { some: { matiere } },
-    };
-    if (niveau) where.niveau = niveau;
+    const where = { inscriptions: { some: { matiere } } };
+    // Restreindre aux niveaux assignés au prof (si définis)
+    if (profNiveaux && profNiveaux.length > 0) {
+      where.niveau = { in: profNiveaux };
+    }
 
     const students = await prisma.student.findMany({
       where,
@@ -363,7 +395,7 @@ app.get('/prof', requireProf, async (req, res) => {
       orderBy: [{ niveau: 'asc' }, { nom: 'asc' }],
     });
 
-    res.render('prof_appel', { students, date, niveau, matiere, NIVEAUX_LABELS, MATIERES_LABELS });
+    res.render('prof_appel', { students, date, matiere, profNiveaux: profNiveaux || [], NIVEAUX_LABELS, MATIERES_LABELS });
   } catch (e) {
     console.error(e);
     res.status(500).send('Erreur serveur');

@@ -2,6 +2,7 @@
   const title = 'Gestion Professeurs';
   const activeMenu = 'profs';
   const ALL_MATIERES = ['MATHEMATIQUES','PHYSIQUE','SVT','ECONOMIE','FRANCAIS','LETTRES','STE','STM','SI'];
+  const ALL_NIVEAUX  = ['AC1','AC2','AC3','TC','BAC1','BAC2'];
 %>
 <%- include('partials/header') %>
 
@@ -41,11 +42,11 @@
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead>
-          <tr><th>#</th><th>Nom d'utilisateur</th><th>Matière enseignée</th><th>Créé le</th><th>Action</th></tr>
+          <tr><th>#</th><th>Nom d'utilisateur</th><th>Matière</th><th>Niveaux</th><th>Créé le</th><th>Action</th></tr>
         </thead>
         <tbody>
           <% if (profs.length === 0) { %>
-          <tr><td colspan="5" class="text-center text-muted py-4">Aucun professeur enregistré.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4">Aucun professeur enregistré.</td></tr>
           <% } %>
           <% profs.forEach((p, i) => { %>
           <tr>
@@ -65,14 +66,31 @@
                 <i class="bi bi-book me-1"></i><%= MATIERES_LABELS[p.matiere] %>
               </span>
               <% } else { %>
-              <span class="text-muted small">Non assigné</span>
+              <span class="text-muted small">—</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (p.niveaux && p.niveaux.length > 0) { %>
+                <% p.niveaux.forEach(n => { %>
+                  <span class="badge badge-niveau me-1"><%= NIVEAUX_LABELS[n.niveau] %></span>
+                <% }) %>
+              <% } else { %>
+                <span class="text-muted small">Tous</span>
               <% } %>
             </td>
             <td class="text-muted small"><%= new Date(p.createdAt).toLocaleDateString('fr-MA') %></td>
-            <td>
+            <td class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary btn-edit-prof"
+                data-bs-toggle="modal" data-bs-target="#editProfModal"
+                data-id="<%= p.id %>"
+                data-matiere="<%= p.matiere || '' %>"
+                data-niveaux="<%= p.niveaux.map(n => n.niveau).join(',') %>"
+                title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </button>
               <form method="POST" action="/admin/profs/<%= p.id %>/delete"
                 onsubmit="return confirm('Supprimer le prof <%= p.username %> ?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
               </form>
             </td>
           </tr>
@@ -93,26 +111,38 @@
       </div>
       <form method="POST" action="/admin/profs/add">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Nom d'utilisateur *</label>
-            <input type="text" name="username" class="form-control" required placeholder="ex: prof_math">
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Mot de passe *</label>
-            <input type="password" name="password" class="form-control" required placeholder="Minimum 6 caractères" minlength="6">
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Matière enseignée *</label>
-            <select name="matiere" class="form-select" required>
-              <option value="">-- Sélectionner --</option>
-              <% ALL_MATIERES.forEach(m => { %>
-              <option value="<%= m %>"><%= MATIERES_LABELS[m] %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="alert alert-info small py-2">
-            <i class="bi bi-info-circle me-1"></i>
-            Le professeur ne verra que les élèves inscrits dans sa matière.
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Nom d'utilisateur *</label>
+              <input type="text" name="username" class="form-control" required placeholder="ex: prof_math">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Mot de passe *</label>
+              <input type="password" name="password" class="form-control" required placeholder="Min. 6 caractères" minlength="6">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Matière enseignée *</label>
+              <select name="matiere" class="form-select" required>
+                <option value="">-- Sélectionner --</option>
+                <% ALL_MATIERES.forEach(m => { %>
+                <option value="<%= m %>"><%= MATIERES_LABELS[m] %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Niveaux autorisés *</label>
+              <div class="row g-2">
+                <% ALL_NIVEAUX.forEach(n => { %>
+                <div class="col-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="niveaux" value="<%= n %>" id="add-n-<%= n %>">
+                    <label class="form-check-label small" for="add-n-<%= n %>"><%= NIVEAUX_LABELS[n] %></label>
+                  </div>
+                </div>
+                <% }) %>
+              </div>
+              <div class="form-text">Si aucun niveau coché, le prof verra tous les niveaux.</div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -124,4 +154,67 @@
   </div>
 </div>
 
-<%- include('partials/footer') %>
+<!-- Modal Modification Prof -->
+<div class="modal fade" id="editProfModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Modifier le Professeur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="editProfForm">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Matière enseignée *</label>
+              <select name="matiere" id="edit-prof-matiere" class="form-select" required>
+                <option value="">-- Sélectionner --</option>
+                <% ALL_MATIERES.forEach(m => { %>
+                <option value="<%= m %>"><%= MATIERES_LABELS[m] %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Niveaux autorisés</label>
+              <div class="row g-2">
+                <% ALL_NIVEAUX.forEach(n => { %>
+                <div class="col-4">
+                  <div class="form-check">
+                    <input class="form-check-input edit-prof-niveau" type="checkbox" name="niveaux" value="<%= n %>" id="edit-n-<%= n %>">
+                    <label class="form-check-label small" for="edit-n-<%= n %>"><%= NIVEAUX_LABELS[n] %></label>
+                  </div>
+                </div>
+                <% }) %>
+              </div>
+              <div class="form-text">Si aucun niveau coché, le prof verra tous les niveaux.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `
+<script>
+document.getElementById('editProfModal').addEventListener('show.bs.modal', function(e) {
+  const btn      = e.relatedTarget;
+  const id       = btn.dataset.id;
+  const matiere  = btn.dataset.matiere;
+  const niveaux  = btn.dataset.niveaux ? btn.dataset.niveaux.split(',') : [];
+
+  document.getElementById('editProfForm').action = '/admin/profs/' + id + '/edit';
+
+  const sel = document.getElementById('edit-prof-matiere');
+  for (const opt of sel.options) opt.selected = (opt.value === matiere);
+
+  document.querySelectorAll('.edit-prof-niveau').forEach(cb => {
+    cb.checked = niveaux.includes(cb.value);
+  });
+});
+</script>
+` }) %>
