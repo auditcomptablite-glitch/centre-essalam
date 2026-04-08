@@ -36,7 +36,7 @@ model Student {
   id        Int           @id @default(autoincrement())
   nom       String        @db.VarChar(100)
   prenom    String        @db.VarChar(100)
-  niveau    Niveau
+  niveau    Niveau   @default(TC)
   telephone String?       @db.VarChar(20)
   createdAt DateTime      @default(now())
 
@@ -82,7 +82,7 @@ model Absence {
   date      DateTime @db.Date
   present   Boolean  @default(true)
   matiere   Matiere
-  niveau    Niveau
+  niveau    Niveau   @default(TC)
   createdAt DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
