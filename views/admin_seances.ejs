@@ -136,7 +136,7 @@
                   <i class="bi bi-eye me-1"></i>Voir
                 </a>
                 <form method="POST" action="/admin/seances/delete"
-                  onsubmit="return confirm('Supprimer la séance <%= MATIERES_LABELS[s.matiere] %> — <%= NIVEAUX_LABELS[s.niveau] %> du <%= new Date(s.date).toLocaleDateString(\'fr-MA\') %> ?')">
+                  onsubmit="return confirm('Supprimer cette séance ?')">
                   <input type="hidden" name="profId"  value="<%= s.profId %>">
                   <input type="hidden" name="date"    value="<%= dateStr %>">
                   <input type="hidden" name="matiere" value="<%= s.matiere %>">
