@@ -7,24 +7,23 @@
 %>
 <%- include('partials/header') %>
 
-<!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb">
     <li class="breadcrumb-item">
       <a href="/prof/seances" class="text-decoration-none"><i class="bi bi-calendar2-check me-1"></i>Mes séances</a>
     </li>
-    <li class="breadcrumb-item active"><%= MATIERES_LABELS[matiere] %> — <%= dateFormatted %></li>
+    <li class="breadcrumb-item active"><%= MATIERES_LABELS[matiere] %> — <%= NIVEAUX_LABELS[niveau] %> — <%= dateFormatted %></li>
   </ol>
 </nav>
 
-<!-- Carte récap -->
 <div class="card mb-4" style="border-left: 4px solid var(--accent, #e8a020)">
   <div class="card-body">
     <div class="row g-3 align-items-center">
       <div class="col-md-6">
         <div class="text-muted small text-uppercase fw-semibold mb-1">Séance</div>
         <div class="fs-5 fw-bold"><%= MATIERES_LABELS[matiere] %></div>
-        <div class="text-muted"><i class="bi bi-calendar3 me-1"></i><%= dateFormatted %></div>
+        <div class="mt-1"><span class="badge badge-niveau"><%= NIVEAUX_LABELS[niveau] %></span></div>
+        <div class="text-muted mt-1"><i class="bi bi-calendar3 me-1"></i><%= dateFormatted %></div>
       </div>
       <div class="col-md-6">
         <div class="row g-2 text-center">
@@ -63,7 +62,6 @@
   </div>
 </div>
 
-<!-- Liste élèves -->
 <div class="card">
   <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
     <span><i class="bi bi-people me-2"></i>Liste des élèves</span>
@@ -76,32 +74,18 @@
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead>
-          <tr>
-            <th>#</th>
-            <th>Élève</th>
-            <th>Niveau</th>
-            <th class="text-center">Statut</th>
-          </tr>
+          <tr><th>#</th><th>Élève</th><th class="text-center">Statut</th></tr>
         </thead>
         <tbody>
           <% lignes.forEach((l, i) => { %>
           <tr style="<%= !l.present ? 'background:rgba(220,53,69,.04)' : '' %>">
             <td class="text-muted small"><%= i + 1 %></td>
             <td class="fw-medium"><%= l.student.prenom %> <%= l.student.nom %></td>
-            <td>
-              <span class="badge" style="background:#e3edf7;color:#1a3a5c">
-                <%= NIVEAUX_LABELS[l.student.niveau] %>
-              </span>
-            </td>
             <td class="text-center">
               <% if (l.present) { %>
-                <span class="badge bg-success px-3">
-                  <i class="bi bi-check-lg me-1"></i>Présent
-                </span>
+                <span class="badge bg-success px-3"><i class="bi bi-check-lg me-1"></i>Présent</span>
               <% } else { %>
-                <span class="badge bg-danger px-3">
-                  <i class="bi bi-x-lg me-1"></i>Absent
-                </span>
+                <span class="badge bg-danger px-3"><i class="bi bi-x-lg me-1"></i>Absent</span>
               <% } %>
             </td>
           </tr>
@@ -112,12 +96,11 @@
   </div>
 </div>
 
-<!-- Boutons action -->
 <div class="mt-3 d-flex gap-2">
   <a href="/prof/seances" class="btn btn-outline-secondary btn-sm">
     <i class="bi bi-arrow-left me-1"></i>Retour aux séances
   </a>
-  <a href="/prof?date=<%= new Date(date).toISOString().split('T')[0] %>"
+  <a href="/prof?date=<%= new Date(date).toISOString().split('T')[0] %>&niveau=<%= niveau %>"
     class="btn btn-outline-primary btn-sm">
     <i class="bi bi-pencil me-1"></i>Modifier cet appel
   </a>

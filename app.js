@@ -375,27 +375,36 @@ app.post('/admin/finance/paiement', requireAdmin, async (req, res) => {
 
 app.get('/prof', requireProf, async (req, res) => {
   const { id, matiere, niveaux: profNiveaux } = req.session.user;
-  const date = req.query.date || new Date().toISOString().split('T')[0];
-  try {
-    const where = { inscriptions: { some: { matiere } } };
-    // Restreindre aux niveaux assignés au prof (si définis)
-    if (profNiveaux && profNiveaux.length > 0) {
-      where.niveau = { in: profNiveaux };
-    }
+  const date   = req.query.date   || new Date().toISOString().split('T')[0];
+  const niveau = req.query.niveau || '';
 
+  // Si pas de niveau sélectionné → page de choix
+  if (!niveau) {
+    return res.render('prof_appel', {
+      students: null, date, matiere, niveau: '',
+      profNiveaux: profNiveaux || [], NIVEAUX_LABELS, MATIERES_LABELS,
+    });
+  }
+
+  // Vérifier que le niveau demandé est autorisé pour ce prof
+  if (profNiveaux && profNiveaux.length > 0 && !profNiveaux.includes(niveau)) {
+    return res.redirect('/prof');
+  }
+
+  try {
     const students = await prisma.student.findMany({
-      where,
+      where: { inscriptions: { some: { matiere } }, niveau },
       select: {
         id: true, nom: true, prenom: true, niveau: true,
         absences: {
-          where: { profId: id, matiere, date: new Date(date) },
+          where: { profId: id, matiere, niveau, date: new Date(date) },
           select: { present: true },
         },
       },
-      orderBy: [{ niveau: 'asc' }, { nom: 'asc' }],
+      orderBy: [{ nom: 'asc' }],
     });
 
-    res.render('prof_appel', { students, date, matiere, profNiveaux: profNiveaux || [], NIVEAUX_LABELS, MATIERES_LABELS });
+    res.render('prof_appel', { students, date, matiere, niveau, profNiveaux: profNiveaux || [], NIVEAUX_LABELS, MATIERES_LABELS });
   } catch (e) {
     console.error(e);
     res.status(500).send('Erreur serveur');
@@ -417,16 +426,16 @@ app.get('/prof/seances', requireProf, async (req, res) => {
   try {
     const rows = await prisma.absence.findMany({
       where,
-      select: { date: true, matiere: true, present: true },
+      select: { date: true, matiere: true, niveau: true, present: true },
       orderBy: [{ date: 'desc' }],
     });
 
-    // Grouper par (date, matiere)
+    // Grouper par (date, matiere, niveau)
     const map = new Map();
     for (const r of rows) {
-      const key = `${r.date.toISOString().split('T')[0]}__${r.matiere}`;
+      const key = `${r.date.toISOString().split('T')[0]}__${r.matiere}__${r.niveau}`;
       if (!map.has(key)) {
-        map.set(key, { date: r.date, matiere: r.matiere, total: 0, presents: 0 });
+        map.set(key, { date: r.date, matiere: r.matiere, niveau: r.niveau, total: 0, presents: 0 });
       }
       const s = map.get(key);
       s.total++;
@@ -444,13 +453,13 @@ app.get('/prof/seances', requireProf, async (req, res) => {
 // Détail d'une séance du prof connecté
 app.get('/prof/seances/detail', requireProf, async (req, res) => {
   const { id: profId } = req.session.user;
-  const { date, matiere } = req.query;
-  if (!date || !matiere) return res.redirect('/prof/seances');
+  const { date, matiere, niveau } = req.query;
+  if (!date || !matiere || !niveau) return res.redirect('/prof/seances');
 
   try {
     const dateObj = new Date(date);
     const lignes = await prisma.absence.findMany({
-      where: { profId, date: dateObj, matiere },
+      where: { profId, date: dateObj, matiere, niveau },
       select: {
         present: true,
         student: { select: { id: true, nom: true, prenom: true, niveau: true } },
@@ -464,7 +473,7 @@ app.get('/prof/seances/detail', requireProf, async (req, res) => {
     const absents  = lignes.length - presents;
 
     res.render('prof_seance_detail', {
-      lignes, date, matiere, presents, absents,
+      lignes, date, matiere, niveau, presents, absents,
       MATIERES_LABELS, NIVEAUX_LABELS,
     });
   } catch (e) {
@@ -475,12 +484,12 @@ app.get('/prof/seances/detail', requireProf, async (req, res) => {
 
 app.post('/prof/appel', requireProf, async (req, res) => {
   const { id: profId, matiere } = req.session.user;
-  const { date, presences } = req.body;
+  const { date, presences, niveau } = req.body;
 
-  console.log('POST /prof/appel body:', JSON.stringify({ date, presences }));
+  console.log('POST /prof/appel body:', JSON.stringify({ date, niveau, presences }));
 
-  if (!date || !presences || typeof presences !== 'object') {
-    console.error('Donnees invalides:', { date, presences });
+  if (!date || !niveau || !presences || typeof presences !== 'object') {
+    console.error('Donnees invalides:', { date, niveau, presences });
     return res.status(400).send('Donnees invalides');
   }
 
@@ -498,14 +507,14 @@ app.post('/prof/appel', requireProf, async (req, res) => {
 
     const ops = entries.map(([studentId, present]) =>
       prisma.absence.upsert({
-        where: { studentId_profId_date_matiere: { studentId, profId, date: dateObj, matiere } },
+        where: { studentId_profId_date_matiere_niveau: { studentId, profId, date: dateObj, matiere, niveau } },
         update: { present: present === '1' },
-        create: { studentId, profId, date: dateObj, matiere, present: present === '1' },
+        create: { studentId, profId, date: dateObj, matiere, niveau, present: present === '1' },
       })
     );
 
     await prisma.$transaction(ops);
-    res.redirect('/prof?date=' + date);
+    res.redirect('/prof?date=' + date + '&niveau=' + niveau);
   } catch (e) {
     console.error('Erreur /prof/appel:', e.message, e.meta || '');
     res.status(500).send('Erreur serveur: ' + e.message);
@@ -514,11 +523,12 @@ app.post('/prof/appel', requireProf, async (req, res) => {
 
 // ── Séances (liste groupée des appels enregistrés) ───────────────────────────
 app.get('/admin/seances', requireAdmin, async (req, res) => {
-  const { profId, matiere, dateFrom, dateTo } = req.query;
+  const { profId, matiere, niveau, dateFrom, dateTo } = req.query;
 
   const where = {};
   if (profId)   where.profId  = parseInt(profId);
   if (matiere)  where.matiere = matiere;
+  if (niveau)   where.niveau  = niveau;
   if (dateFrom || dateTo) {
     where.date = {};
     if (dateFrom) where.date.gte = new Date(dateFrom);
@@ -530,22 +540,23 @@ app.get('/admin/seances', requireAdmin, async (req, res) => {
     const rows = await prisma.absence.findMany({
       where,
       select: {
-        profId: true, date: true, matiere: true, present: true,
+        profId: true, date: true, matiere: true, niveau: true, present: true,
         prof: { select: { username: true } },
       },
       orderBy: [{ date: 'desc' }, { matiere: 'asc' }],
     });
 
-    // Groupe par (profId, date, matiere) → une séance
+    // Groupe par (profId, date, matiere, niveau) → une séance
     const map = new Map();
     for (const r of rows) {
-      const key = `${r.profId}__${r.date.toISOString().split('T')[0]}__${r.matiere}`;
+      const key = `${r.profId}__${r.date.toISOString().split('T')[0]}__${r.matiere}__${r.niveau}`;
       if (!map.has(key)) {
         map.set(key, {
           profId:   r.profId,
           profName: r.prof.username,
           date:     r.date,
           matiere:  r.matiere,
+          niveau:   r.niveau,
           total:    0,
           presents: 0,
         });
@@ -574,14 +585,14 @@ app.get('/admin/seances', requireAdmin, async (req, res) => {
 
 // Détail d'une séance : profId + date + matiere en query params
 app.get('/admin/seances/detail', requireAdmin, async (req, res) => {
-  const { profId, date, matiere } = req.query;
-  if (!profId || !date || !matiere) return res.redirect('/admin/seances');
+  const { profId, date, matiere, niveau } = req.query;
+  if (!profId || !date || !matiere || !niveau) return res.redirect('/admin/seances');
 
   try {
     const dateObj = new Date(date);
 
     const lignes = await prisma.absence.findMany({
-      where: { profId: parseInt(profId), date: dateObj, matiere },
+      where: { profId: parseInt(profId), date: dateObj, matiere, niveau },
       select: {
         present: true,
         student: { select: { id: true, nom: true, prenom: true, niveau: true } },
@@ -600,7 +611,7 @@ app.get('/admin/seances/detail', requireAdmin, async (req, res) => {
     const absents   = lignes.length - presents;
 
     res.render('admin_seance_detail', {
-      lignes, profName, profId, date, matiere,
+      lignes, profName, profId, date, matiere, niveau,
       presents, absents,
       MATIERES_LABELS, NIVEAUX_LABELS,
     });

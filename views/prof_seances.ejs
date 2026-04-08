@@ -45,6 +45,7 @@
           <tr>
             <th>Date</th>
             <th>Matière</th>
+            <th>Niveau</th>
             <th class="text-center">Élèves</th>
             <th class="text-center">Présents</th>
             <th class="text-center">Absents</th>
@@ -67,10 +68,11 @@
                 <i class="bi bi-book me-1"></i><%= MATIERES_LABELS[s.matiere] %>
               </span>
             </td>
-            <td class="text-center fw-semibold"><%= s.total %></td>
-            <td class="text-center">
-              <span class="badge bg-success"><%= s.presents %></span>
+            <td>
+              <span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span>
             </td>
+            <td class="text-center fw-semibold"><%= s.total %></td>
+            <td class="text-center"><span class="badge bg-success"><%= s.presents %></span></td>
             <td class="text-center">
               <% if (absents > 0) { %>
                 <span class="badge bg-danger"><%= absents %></span>
@@ -88,7 +90,7 @@
               </div>
             </td>
             <td class="text-center">
-              <a href="/prof/seances/detail?date=<%= dateStr %>&matiere=<%= s.matiere %>"
+              <a href="/prof/seances/detail?date=<%= dateStr %>&matiere=<%= s.matiere %>&niveau=<%= s.niveau %>"
                 class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-eye me-1"></i>Voir
               </a>

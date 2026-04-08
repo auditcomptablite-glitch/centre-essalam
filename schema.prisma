@@ -82,14 +82,16 @@ model Absence {
   date      DateTime @db.Date
   present   Boolean  @default(true)
   matiere   Matiere
+  niveau    Niveau
   createdAt DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   prof    User    @relation(fields: [profId], references: [id], onDelete: Cascade)
 
-  @@unique([studentId, profId, date, matiere])
+  @@unique([studentId, profId, date, matiere, niveau])
   @@index([date])
   @@index([matiere])
+  @@index([niveau])
 }
 
 enum Role {

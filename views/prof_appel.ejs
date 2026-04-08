@@ -8,121 +8,164 @@
     <h4><i class="bi bi-clipboard-check me-2 text-warning"></i>Feuille d'Appel</h4>
     <small class="text-muted">
       Matière : <strong><%= MATIERES_LABELS[matiere] %></strong>
-      <% if (profNiveaux && profNiveaux.length > 0) { %>
-        &nbsp;·&nbsp; Niveaux :
-        <% profNiveaux.forEach(n => { %>
-          <span class="badge badge-niveau"><%= NIVEAUX_LABELS[n] %></span>
-        <% }) %>
+      <% if (niveau) { %>
+        &nbsp;·&nbsp; Niveau : <span class="badge badge-niveau"><%= NIVEAUX_LABELS[niveau] %></span>
       <% } %>
     </small>
   </div>
   <span class="badge bg-info text-dark fs-6">Professeur</span>
 </div>
 
-<!-- Filtre date uniquement -->
-<div class="card mb-3 p-3">
-  <form method="GET" class="row g-2 align-items-end">
-    <div class="col-auto">
-      <label class="form-label small fw-semibold mb-1">Date</label>
-      <input type="date" name="date" class="form-control form-control-sm" value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
+<% if (!niveau) { %>
+  <!-- Choix du niveau -->
+  <div class="card mt-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-layers me-2"></i>Choisir un niveau pour commencer l'appel
     </div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
-    </div>
-  </form>
-</div>
-
-<!-- Stats rapides -->
-<% const total    = students.length;
-   const presents = students.filter(s => s.absences.length === 0 || s.absences[0].present).length;
-   const absents  = total - presents;
-%>
-<div class="row g-2 mb-3">
-  <div class="col-4">
-    <div class="card p-2 text-center">
-      <div class="fw-bold fs-5"><%= total %></div>
-      <div class="small text-muted">Total</div>
-    </div>
-  </div>
-  <div class="col-4">
-    <div class="card p-2 text-center border-success">
-      <div class="fw-bold fs-5 text-success"><%= presents %></div>
-      <div class="small text-muted">Présents</div>
-    </div>
-  </div>
-  <div class="col-4">
-    <div class="card p-2 text-center border-danger">
-      <div class="fw-bold fs-5 text-danger"><%= absents %></div>
-      <div class="small text-muted">Absents</div>
-    </div>
-  </div>
-</div>
-
-<!-- Feuille d'appel -->
-<% if (students.length === 0) { %>
-<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Aucun élève inscrit en <strong><%= MATIERES_LABELS[matiere] %></strong> pour vos niveaux.</div>
-<% } else { %>
-<form method="POST" action="/prof/appel">
-  <input type="hidden" name="date" value="<%= date %>">
-
-  <div class="card">
-    <div class="card-header fw-semibold d-flex justify-content-between">
-      <span>Élèves inscrits en <%= MATIERES_LABELS[matiere] %> — <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></span>
-      <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
-        ✓ Tous présents
-      </button>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Élève</th>
-              <th>Niveau</th>
-              <th class="text-center">Présent</th>
-              <th class="text-center">Absent</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% students.forEach((s, i) => {
-              const isPresent = s.absences.length === 0 || s.absences[0].present;
-            %>
-            <tr class="appel-row" data-present="<%= isPresent ? '1' : '0' %>">
-              <td class="text-muted small"><%= i + 1 %></td>
-              <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
-              <td><span class="badge badge-niveau"><%= NIVEAUX_LABELS[s.niveau] %></span></td>
-              <td class="text-center">
-                <input type="radio" name="presences[s<%= s.id %>]" value="1"
-                  class="form-check-input radio-present" style="width:1.2rem;height:1.2rem;accent-color:#198754"
-                  <%= isPresent ? 'checked' : '' %>>
-              </td>
-              <td class="text-center">
-                <input type="radio" name="presences[s<%= s.id %>]" value="0"
-                  class="form-check-input radio-absent" style="width:1.2rem;height:1.2rem;accent-color:#dc3545"
-                  <%= !isPresent ? 'checked' : '' %>>
-              </td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">Date</label>
+        <input type="date" id="dateInput" class="form-control form-control-sm" style="width:180px"
+          value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <% const niveauxAffiches = profNiveaux.length > 0 ? profNiveaux : ['AC1','AC2','AC3','TC','BAC1','BAC2']; %>
+        <% niveauxAffiches.forEach(n => { %>
+          <button class="btn btn-outline-primary btn-niveau-select" data-niveau="<%= n %>">
+            <i class="bi bi-mortarboard me-2"></i><%= NIVEAUX_LABELS[n] %>
+          </button>
+        <% }) %>
       </div>
     </div>
-    <div class="card-footer d-flex justify-content-end">
-      <button type="submit" class="btn btn-primary">
-        <i class="bi bi-save me-1"></i>Enregistrer l'appel
-      </button>
+  </div>
+<% } else { %>
+  <!-- Filtre date + bouton changer niveau -->
+  <div class="card mb-3 p-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <input type="hidden" name="niveau" value="<%= niveau %>">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">Date</label>
+        <input type="date" name="date" class="form-control form-control-sm" value="<%= date %>"
+          max="<%= new Date().toISOString().split('T')[0] %>">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="/prof?date=<%= date %>" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Changer de niveau
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Stats rapides -->
+  <% const total    = students.length;
+     const presents = students.filter(s => s.absences.length === 0 || s.absences[0].present).length;
+     const absents  = total - presents;
+  %>
+  <div class="row g-2 mb-3">
+    <div class="col-4">
+      <div class="card p-2 text-center">
+        <div class="fw-bold fs-5"><%= total %></div>
+        <div class="small text-muted">Total</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card p-2 text-center border-success">
+        <div class="fw-bold fs-5 text-success"><%= presents %></div>
+        <div class="small text-muted">Présents</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card p-2 text-center border-danger">
+        <div class="fw-bold fs-5 text-danger"><%= absents %></div>
+        <div class="small text-muted">Absents</div>
+      </div>
     </div>
   </div>
-</form>
+
+  <!-- Feuille d'appel -->
+  <% if (students.length === 0) { %>
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>Aucun élève inscrit en
+    <strong><%= MATIERES_LABELS[matiere] %></strong> en <strong><%= NIVEAUX_LABELS[niveau] %></strong>.
+  </div>
+  <% } else { %>
+  <form method="POST" action="/prof/appel">
+    <input type="hidden" name="date" value="<%= date %>">
+    <input type="hidden" name="niveau" value="<%= niveau %>">
+
+    <div class="card">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>
+          <%= MATIERES_LABELS[matiere] %> — <span class="badge badge-niveau"><%= NIVEAUX_LABELS[niveau] %></span>
+          &nbsp;— <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %>
+        </span>
+        <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
+          ✓ Tous présents
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Élève</th>
+                <th class="text-center">Présent</th>
+                <th class="text-center">Absent</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% students.forEach((s, i) => {
+                const isPresent = s.absences.length === 0 || s.absences[0].present;
+              %>
+              <tr class="appel-row">
+                <td class="text-muted small"><%= i + 1 %></td>
+                <td class="fw-medium"><%= s.prenom %> <%= s.nom %></td>
+                <td class="text-center">
+                  <input type="radio" name="presences[s<%= s.id %>]" value="1"
+                    class="form-check-input radio-present" style="width:1.2rem;height:1.2rem;accent-color:#198754"
+                    <%= isPresent ? 'checked' : '' %>>
+                </td>
+                <td class="text-center">
+                  <input type="radio" name="presences[s<%= s.id %>]" value="0"
+                    class="form-check-input radio-absent" style="width:1.2rem;height:1.2rem;accent-color:#dc3545"
+                    <%= !isPresent ? 'checked' : '' %>>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>Enregistrer l'appel
+        </button>
+      </div>
+    </div>
+  </form>
+  <% } %>
 <% } %>
 
 <%- include('partials/footer', { extraJs: `
 <script>
+  // Choix niveau → redirect
+  document.querySelectorAll('.btn-niveau-select').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const date  = document.getElementById('dateInput').value;
+      const niveau = btn.dataset.niveau;
+      window.location = '/prof?date=' + date + '&niveau=' + niveau;
+    });
+  });
+
+  // Colorier les lignes
   function updateRowColors() {
     document.querySelectorAll('.appel-row').forEach(row => {
-      const presentRadio = row.querySelector('.radio-present');
-      row.style.background = presentRadio && presentRadio.checked ? '' : 'rgba(220,53,69,.05)';
+      const r = row.querySelector('.radio-present');
+      row.style.background = r && r.checked ? '' : 'rgba(220,53,69,.05)';
     });
   }
   document.querySelectorAll('.radio-present, .radio-absent').forEach(r => {
