@@ -621,6 +621,26 @@ app.get('/admin/seances/detail', requireAdmin, async (req, res) => {
   }
 });
 
+// ── Suppression d'une séance (toutes les absences d'un prof/date/matiere/niveau)
+app.post('/admin/seances/delete', requireAdmin, async (req, res) => {
+  const { profId, date, matiere, niveau } = req.body;
+  if (!profId || !date || !matiere || !niveau) return res.redirect('/admin/seances');
+  try {
+    await prisma.absence.deleteMany({
+      where: {
+        profId:  parseInt(profId),
+        date:    new Date(date),
+        matiere,
+        niveau,
+      },
+    });
+    res.redirect('/admin/seances');
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT ADMIN (à appeler une seule fois via /init-admin?secret=XXX)
 // ═══════════════════════════════════════════════════════════════════════════════

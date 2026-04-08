@@ -130,10 +130,22 @@
               </div>
             </td>
             <td class="text-center">
-              <a href="/admin/seances/detail?profId=<%= s.profId %>&date=<%= dateStr %>&matiere=<%= s.matiere %>&niveau=<%= s.niveau %>"
-                class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-eye me-1"></i>Voir
-              </a>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="/admin/seances/detail?profId=<%= s.profId %>&date=<%= dateStr %>&matiere=<%= s.matiere %>&niveau=<%= s.niveau %>"
+                  class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye me-1"></i>Voir
+                </a>
+                <form method="POST" action="/admin/seances/delete"
+                  onsubmit="return confirm('Supprimer la séance <%= MATIERES_LABELS[s.matiere] %> — <%= NIVEAUX_LABELS[s.niveau] %> du <%= new Date(s.date).toLocaleDateString(\'fr-MA\') %> ?')">
+                  <input type="hidden" name="profId"  value="<%= s.profId %>">
+                  <input type="hidden" name="date"    value="<%= dateStr %>">
+                  <input type="hidden" name="matiere" value="<%= s.matiere %>">
+                  <input type="hidden" name="niveau"  value="<%= s.niveau %>">
+                  <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
           <% }) %>
