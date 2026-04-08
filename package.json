@@ -4,7 +4,7 @@
   "description": "Gestion Centre de Soutien Scolaire - Railway Hobby Optimized",
   "main": "app.js",
   "scripts": {
-    "start": "npx prisma db push --force-reset && node app.js",
+    "start": "npx prisma db push --accept-data-loss && node app.js",
     "dev": "nodemon app.js",
     "build": "npx prisma generate",
     "postinstall": "npx prisma generate"
