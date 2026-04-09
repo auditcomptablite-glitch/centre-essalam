@@ -61,6 +61,7 @@
             <th>Élève</th>
             <th>Niveau</th>
             <th>Matière(s)</th>
+            <th>Date d'inscription</th>
             <th>Montant (MAD)</th>
             <th>Date de paiement</th>
             <th>Statut</th>
@@ -69,7 +70,7 @@
         </thead>
         <tbody>
           <% if (students.length === 0) { %>
-          <tr><td colspan="7" class="text-center text-muted py-4">Aucun élève trouvé pour ce filtre.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4">Aucun élève trouvé pour ce filtre.</td></tr>
           <% } %>
           <% students.forEach(s => { %>
           <% const p = s.paiements[0] || null; %>
@@ -95,6 +96,9 @@
               <% if (s.inscriptions.length === 0) { %>
                 <span class="text-muted small">—</span>
               <% } %>
+            </td>
+            <td class="text-muted small">
+              <%= s.dateInscription ? new Date(s.dateInscription).toLocaleDateString('fr-MA') : '—' %>
             </td>
             <td>
               <input type="number" class="form-control form-control-sm montant-input" step="0.01" min="0"
@@ -151,7 +155,7 @@
               <div class="small text-success"><i class="bi bi-check-circle me-1"></i><%= totalPayes.toFixed(2) %> MAD</div>
               <div class="small text-danger"><i class="bi bi-x-circle me-1"></i><%= totalImpayes.toFixed(2) %> MAD</div>
             </td>
-            <td colspan="3"></td>
+            <td colspan="4"></td>
           </tr>
         </tfoot>
       </table>

@@ -313,7 +313,7 @@ app.get('/admin/finance', requireAdmin, async (req, res) => {
     const students = await prisma.student.findMany({
       where: studentWhere,
       select: {
-        id: true, nom: true, prenom: true, niveau: true,
+        id: true, nom: true, prenom: true, niveau: true, dateInscription: true,
         inscriptions: {
           select: { matiere: true },
           ...(matiere ? { where: { matiere } } : {}),
