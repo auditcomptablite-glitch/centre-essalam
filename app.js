@@ -177,7 +177,7 @@ app.get('/admin/etudiants', requireAdmin, async (req, res) => {
     const students = await prisma.student.findMany({
       where,
       select: {
-        id: true, nom: true, prenom: true, niveau: true, telephone: true,
+        id: true, nom: true, prenom: true, niveau: true, telephone: true, dateInscription: true,
         inscriptions: { select: { matiere: true } },
       },
       orderBy: [{ niveau: 'asc' }, { nom: 'asc' }],
@@ -190,12 +190,13 @@ app.get('/admin/etudiants', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/etudiants/add', requireAdmin, async (req, res) => {
-  const { nom, prenom, niveau, telephone, matieres } = req.body;
+  const { nom, prenom, niveau, telephone, matieres, dateInscription } = req.body;
   const matieresArr = Array.isArray(matieres) ? matieres : (matieres ? [matieres] : []);
   try {
     await prisma.student.create({
       data: {
         nom: nom.trim(), prenom: prenom.trim(), niveau, telephone: telephone?.trim() || null,
+        dateInscription: dateInscription ? new Date(dateInscription) : null,
         inscriptions: { create: matieresArr.map(m => ({ matiere: m })) },
       },
     });
@@ -208,7 +209,7 @@ app.post('/admin/etudiants/add', requireAdmin, async (req, res) => {
 
 app.post('/admin/etudiants/:id/edit', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id);
-  const { nom, prenom, niveau, telephone, matieres } = req.body;
+  const { nom, prenom, niveau, telephone, matieres, dateInscription } = req.body;
   const matieresArr = Array.isArray(matieres) ? matieres : (matieres ? [matieres] : []);
   try {
     await prisma.$transaction([
@@ -217,6 +218,7 @@ app.post('/admin/etudiants/:id/edit', requireAdmin, async (req, res) => {
         where: { id },
         data: {
           nom: nom.trim(), prenom: prenom.trim(), niveau, telephone: telephone?.trim() || null,
+          dateInscription: dateInscription ? new Date(dateInscription) : null,
           inscriptions: { create: matieresArr.map(m => ({ matiere: m })) },
         },
       }),

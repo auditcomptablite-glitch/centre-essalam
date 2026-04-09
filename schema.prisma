@@ -38,7 +38,8 @@ model Student {
   prenom    String        @db.VarChar(100)
   niveau    Niveau   @default(TC)
   telephone String?       @db.VarChar(20)
-  createdAt DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  dateInscription  DateTime?
 
   inscriptions Inscription[]
   paiements    Paiement[]
