@@ -165,6 +165,16 @@
 
 <%- include('partials/footer', { extraJs: `
 <script>
+function showToast(type, message) {
+  const div = document.createElement('div');
+  div.className = 'alert alert-' + type + ' alert-dismissible fade show d-flex align-items-center gap-2';
+  div.style = 'position:fixed;top:1rem;right:1rem;z-index:9999;min-width:280px;box-shadow:0 4px 12px rgba(0,0,0,.15)';
+  div.innerHTML = (type === 'success' ? '<i class="bi bi-check-circle-fill fs-5"></i>' : '<i class="bi bi-exclamation-triangle-fill fs-5"></i>')
+    + '<span>' + message + '</span>'
+    + '<button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>';
+  document.body.appendChild(div);
+  setTimeout(() => div.classList.remove('show'), 3000);
+}
 const mois = ${mois}, annee = ${annee};
 
 function validateDate(dateStr) {
@@ -197,8 +207,12 @@ async function savePaiement(studentId, paye) {
       datePaiement: paye ? (dateValue || null) : null
     })
   });
-  if (res.ok) location.reload();
-  else alert('Erreur lors de la sauvegarde.');
+  if (res.ok) {
+    showToast('success', 'Paiement enregistré avec succès.');
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    showToast('danger', 'Erreur lors de la sauvegarde.');
+  }
 }
 
 document.querySelectorAll('.btn-payer').forEach(btn => {

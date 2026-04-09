@@ -66,6 +66,13 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 
 // ── Helpers locals ────────────────────────────────────────────────────────────
+// ── Flash messages ────────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.locals.flash = req.session.flash || null;
+  delete req.session.flash;
+  next();
+});
+
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.NIVEAUX_LABELS = NIVEAUX_LABELS;
@@ -73,6 +80,11 @@ app.use((req, res, next) => {
   res.locals.MOIS_LABELS = MOIS_LABELS;
   next();
 });
+
+// ── Helper flash ──────────────────────────────────────────────────────────────
+function flash(req, type, message) {
+  req.session.flash = { type, message };
+}
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 const requireAuth = (req, res, next) => {
@@ -200,6 +212,7 @@ app.post('/admin/etudiants/add', requireAdmin, async (req, res) => {
         inscriptions: { create: matieresArr.map(m => ({ matiere: m })) },
       },
     });
+    flash(req, 'success', 'Élève ajouté avec succès.');
     res.redirect('/admin/etudiants');
   } catch (e) {
     console.error(e);
@@ -223,15 +236,18 @@ app.post('/admin/etudiants/:id/edit', requireAdmin, async (req, res) => {
         },
       }),
     ]);
+    flash(req, 'success', 'Élève modifié avec succès.');
     res.redirect('/admin/etudiants');
   } catch (e) {
     console.error(e);
+    flash(req, 'danger', 'Erreur lors de la modification.');
     res.redirect('/admin/etudiants?error=1');
   }
 });
 
 app.post('/admin/etudiants/:id/delete', requireAdmin, async (req, res) => {
   await prisma.student.delete({ where: { id: parseInt(req.params.id) } });
+  flash(req, 'success', 'Élève supprimé.');
   res.redirect('/admin/etudiants');
 });
 
@@ -264,8 +280,10 @@ app.post('/admin/profs/add', requireAdmin, async (req, res) => {
         niveaux: { create: niveauxArr.map(n => ({ niveau: n })) },
       },
     });
+    flash(req, 'success', 'Professeur créé avec succès.');
     res.redirect('/admin/profs');
   } catch (e) {
+    flash(req, 'danger', "Ce nom d'utilisateur existe déjà.");
     res.redirect('/admin/profs?error=exists');
   }
 });
@@ -285,15 +303,18 @@ app.post('/admin/profs/:id/edit', requireAdmin, async (req, res) => {
         },
       }),
     ]);
+    flash(req, 'success', 'Professeur modifié avec succès.');
     res.redirect('/admin/profs');
   } catch (e) {
     console.error(e);
+    flash(req, 'danger', 'Erreur lors de la modification.');
     res.redirect('/admin/profs?error=exists');
   }
 });
 
 app.post('/admin/profs/:id/delete', requireAdmin, async (req, res) => {
   await prisma.user.delete({ where: { id: parseInt(req.params.id) } });
+  flash(req, 'success', 'Professeur supprimé.');
   res.redirect('/admin/profs');
 });
 
@@ -364,6 +385,7 @@ app.post('/admin/finance/paiement', requireAdmin, async (req, res) => {
         montant: parseFloat(montant), paye: paye === '1', datePaiement: dateToStore,
       },
     });
+    flash(req, 'success', 'Paiement enregistré avec succès.');
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -516,6 +538,7 @@ app.post('/prof/appel', requireProf, async (req, res) => {
     );
 
     await prisma.$transaction(ops);
+    flash(req, 'success', "Appel enregistré avec succès.");
     res.redirect('/prof?date=' + date + '&niveau=' + niveau);
   } catch (e) {
     console.error('Erreur /prof/appel:', e.message, e.meta || '');
@@ -636,6 +659,7 @@ app.post('/admin/seances/delete', requireAdmin, async (req, res) => {
         niveau,
       },
     });
+    flash(req, 'success', 'Séance supprimée.');
     res.redirect('/admin/seances');
   } catch (e) {
     console.error(e);
