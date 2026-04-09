@@ -44,15 +44,41 @@
     .btn-primary:hover { background: #14304e; border-color: #14304e; }
     .btn-warning { background: var(--accent); border-color: var(--accent); color: #fff; }
     @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main-content { margin-left: 0; }
+      .sidebar { transform: translateX(-100%); transition: transform .25s ease; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; }
+      .sidebar-overlay.open { display: block; }
+      .main-content { margin-left: 0; padding: 1rem; }
+      .mobile-nav { display: flex !important; }
+      .w-md-auto { width: auto !important; }
+    }
+    @media (min-width: 769px) {
+      .mobile-nav { display: none !important; }
+      .sidebar { transform: none !important; }
     }
   </style>
   <%- typeof extraCss !== 'undefined' ? extraCss : '' %>
 </head>
 <body>
 
-<div class="sidebar">
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Navbar mobile -->
+<nav class="mobile-nav align-items-center justify-content-between px-3 py-2 bg-white shadow-sm"
+  style="position:sticky;top:0;z-index:98;border-bottom:1px solid #e2e8f0">
+  <button class="btn btn-sm btn-outline-secondary" id="menuToggle">
+    <i class="bi bi-list fs-5"></i>
+  </button>
+  <span class="fw-bold" style="color:var(--primary);font-size:.95rem">
+    <i class="bi bi-mortarboard-fill me-1" style="color:var(--accent)"></i>Centre de Soutien
+  </span>
+  <a href="/logout" class="btn btn-sm btn-outline-danger">
+    <i class="bi bi-box-arrow-right"></i>
+  </a>
+</nav>
+
+<div class="sidebar" id="sidebar">
   <a href="#" class="sidebar-brand">
     <i class="bi bi-mortarboard-fill fs-4"></i>
     <div>Centre de Soutien<small>Tableau de bord</small></div>
@@ -96,6 +122,15 @@
 </div>
 
 <div class="main-content">
+<script>
+  const menuToggle   = document.getElementById('menuToggle');
+  const sidebar      = document.getElementById('sidebar');
+  const overlay      = document.getElementById('sidebarOverlay');
+  function openSidebar()  { sidebar.classList.add('open'); overlay.classList.add('open'); }
+  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+  menuToggle?.addEventListener('click', openSidebar);
+  overlay?.addEventListener('click', closeSidebar);
+</script>
 <% if (typeof flash !== 'undefined' && flash) { %>
 <div class="alert alert-<%= flash.type %> alert-dismissible fade show mx-0 mb-3 d-flex align-items-center gap-2"
   role="alert" id="flashMsg" style="border-radius:.5rem">

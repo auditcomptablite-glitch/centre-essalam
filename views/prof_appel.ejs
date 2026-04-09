@@ -25,37 +25,35 @@
     <div class="card-body">
       <div class="mb-3">
         <label class="form-label small fw-semibold mb-1">Date</label>
-        <input type="date" id="dateInput" class="form-control form-control-sm" style="width:180px"
+        <input type="date" id="dateInput" class="form-control form-control-sm" style="max-width:200px"
           value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
       </div>
       <div class="d-flex flex-wrap gap-2">
         <% const niveauxAffiches = profNiveaux.length > 0 ? profNiveaux : ['AC1','AC2','AC3','TC','TCS','BAC1','BAC2']; %>
         <% niveauxAffiches.forEach(n => { %>
-          <button class="btn btn-outline-primary btn-niveau-select" data-niveau="<%= n %>">
+          <button class="btn btn-outline-primary btn-niveau-select flex-fill" style="min-width:140px" data-niveau="<%= n %>">
             <i class="bi bi-mortarboard me-2"></i><%= NIVEAUX_LABELS[n] %>
           </button>
         <% }) %>
       </div>
     </div>
   </div>
+
 <% } else { %>
+
   <!-- Filtre date + bouton changer niveau -->
   <div class="card mb-3 p-3">
-    <form method="GET" class="row g-2 align-items-end">
+    <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
       <input type="hidden" name="niveau" value="<%= niveau %>">
-      <div class="col-auto">
+      <div>
         <label class="form-label small fw-semibold mb-1">Date</label>
         <input type="date" name="date" class="form-control form-control-sm" value="<%= date %>"
           max="<%= new Date().toISOString().split('T')[0] %>">
       </div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
-      </div>
-      <div class="col-auto ms-auto">
-        <a href="/prof?date=<%= date %>" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-arrow-left me-1"></i>Changer de niveau
-        </a>
-      </div>
+      <button type="submit" class="btn btn-sm btn-primary">Afficher</button>
+      <a href="/prof?date=<%= date %>" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="bi bi-arrow-left me-1"></i>Changer de niveau
+      </a>
     </form>
   </div>
 
@@ -97,17 +95,49 @@
     <input type="hidden" name="niveau" value="<%= niveau %>">
 
     <div class="card">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span>
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span class="small">
           <%= MATIERES_LABELS[matiere] %> — <span class="badge badge-niveau"><%= NIVEAUX_LABELS[niveau] %></span>
-          &nbsp;— <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %>
+          <span class="d-none d-md-inline">&nbsp;— <%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></span>
+          <span class="d-md-none text-muted"><br><%= new Date(date + 'T00:00:00').toLocaleDateString('fr-MA', { day: 'numeric', month: 'short', year: 'numeric' }) %></span>
         </span>
-        <button type="button" id="btnTousPresents" class="btn btn-xs btn-outline-success" style="font-size:.75rem;padding:.2rem .6rem">
-          ✓ Tous présents
+        <button type="button" id="btnTousPresents" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-check-all me-1"></i>Tous présents
         </button>
       </div>
+
       <div class="card-body p-0">
-        <div class="table-responsive">
+        <!-- Vue mobile : cartes par élève -->
+        <div class="d-md-none">
+          <% students.forEach((s, i) => {
+            const isPresent = s.absences.length === 0 || s.absences[0].present;
+          %>
+          <div class="appel-row border-bottom px-3 py-2 d-flex align-items-center justify-content-between gap-2"
+            style="<%= !isPresent ? 'background:rgba(220,53,69,.05)' : '' %>">
+            <div class="d-flex align-items-center gap-2 flex-grow-1 min-width-0">
+              <span class="text-muted small" style="min-width:1.4rem"><%= i + 1 %></span>
+              <span class="fw-medium text-truncate"><%= s.prenom %> <%= s.nom %></span>
+            </div>
+            <div class="d-flex gap-3 align-items-center flex-shrink-0">
+              <label class="d-flex flex-column align-items-center gap-1 mb-0" style="cursor:pointer">
+                <input type="radio" name="presences[s<%= s.id %>]" value="1"
+                  class="form-check-input radio-present" style="width:1.4rem;height:1.4rem;accent-color:#198754"
+                  <%= isPresent ? 'checked' : '' %>>
+                <span class="small text-success fw-semibold" style="font-size:.65rem">Présent</span>
+              </label>
+              <label class="d-flex flex-column align-items-center gap-1 mb-0" style="cursor:pointer">
+                <input type="radio" name="presences[s<%= s.id %>]" value="0"
+                  class="form-check-input radio-absent" style="width:1.4rem;height:1.4rem;accent-color:#dc3545"
+                  <%= !isPresent ? 'checked' : '' %>>
+                <span class="small text-danger fw-semibold" style="font-size:.65rem">Absent</span>
+              </label>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+
+        <!-- Vue desktop : tableau -->
+        <div class="d-none d-md-block">
           <table class="table table-hover align-middle mb-0">
             <thead>
               <tr>
@@ -140,8 +170,9 @@
           </table>
         </div>
       </div>
+
       <div class="card-footer d-flex justify-content-end">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary w-100 w-md-auto">
           <i class="bi bi-save me-1"></i>Enregistrer l'appel
         </button>
       </div>
@@ -152,20 +183,19 @@
 
 <%- include('partials/footer', { extraJs: `
 <script>
-  // Choix niveau → redirect
   document.querySelectorAll('.btn-niveau-select').forEach(btn => {
     btn.addEventListener('click', () => {
-      const date  = document.getElementById('dateInput').value;
+      const date   = document.getElementById('dateInput').value;
       const niveau = btn.dataset.niveau;
       window.location = '/prof?date=' + date + '&niveau=' + niveau;
     });
   });
 
-  // Colorier les lignes
   function updateRowColors() {
     document.querySelectorAll('.appel-row').forEach(row => {
       const r = row.querySelector('.radio-present');
-      row.style.background = r && r.checked ? '' : 'rgba(220,53,69,.05)';
+      const absent = r && !r.checked;
+      row.style.background = absent ? 'rgba(220,53,69,.05)' : '';
     });
   }
   document.querySelectorAll('.radio-present, .radio-absent').forEach(r => {
