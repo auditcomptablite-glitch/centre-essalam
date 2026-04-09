@@ -104,6 +104,7 @@ enum Niveau {
   AC2
   AC3
   TC
+  TCS
   BAC1
   BAC2
 }

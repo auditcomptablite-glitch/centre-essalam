@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 // ── Constantes métier ─────────────────────────────────────────────────────────
 const NIVEAUX_LABELS = {
   AC1: '1ère AC', AC2: '2ème AC', AC3: '3ème AC',
-  TC: 'Tronc Commun', BAC1: '1ère BAC', BAC2: '2ème BAC',
+  TC: 'Tronc Commun', TCS: 'Tronc Commun S', BAC1: '1ère BAC', BAC2: '2ème BAC',
 };
 const MATIERES_LABELS = {
   MATHEMATIQUES: 'Mathématiques', PHYSIQUE: 'Physique', SVT: 'SVT',

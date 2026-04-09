@@ -29,7 +29,7 @@
           value="<%= date %>" max="<%= new Date().toISOString().split('T')[0] %>">
       </div>
       <div class="d-flex flex-wrap gap-2">
-        <% const niveauxAffiches = profNiveaux.length > 0 ? profNiveaux : ['AC1','AC2','AC3','TC','BAC1','BAC2']; %>
+        <% const niveauxAffiches = profNiveaux.length > 0 ? profNiveaux : ['AC1','AC2','AC3','TC','TCS','BAC1','BAC2']; %>
         <% niveauxAffiches.forEach(n => { %>
           <button class="btn btn-outline-primary btn-niveau-select" data-niveau="<%= n %>">
             <i class="bi bi-mortarboard me-2"></i><%= NIVEAUX_LABELS[n] %>
